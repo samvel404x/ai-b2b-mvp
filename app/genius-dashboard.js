@@ -231,6 +231,9 @@ const initialAssistantMessage = {
   text: "I am ready to inspect uploaded business data, estimate exposure, and prepare actions that stay behind approval.",
 };
 const chatStorageKey = "genius-chat-history-v2";
+const minSidebarWidth = 224;
+const maxSidebarWidth = 360;
+const collapsedSidebarWidth = 76;
 const defaultChatThreads = [
   {
     id: "thread-default",
@@ -1390,6 +1393,7 @@ export default function GeniusDashboard() {
   const urlInputRef = useRef(null);
   const recognitionRef = useRef(null);
   const paneMotionTimerRef = useRef(null);
+  const sidebarToggleGuardRef = useRef(0);
   const [theme, setTheme] = useState("black");
   const [language, setLanguage] = useState("en");
   const [motionEnabled, setMotionEnabled] = useState(true);
@@ -1399,6 +1403,8 @@ export default function GeniusDashboard() {
   const [activeSection, setActiveSection] = useState("chat");
   const [paneMotionState, setPaneMotionState] = useState("ready");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(266);
+  const [isSidebarResizing, setIsSidebarResizing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState("general");
   const [authOpen, setAuthOpen] = useState(false);
@@ -1416,6 +1422,7 @@ export default function GeniusDashboard() {
     Object.fromEntries(navGroups.map((group) => [group.id, true])),
   );
   const [chatInput, setChatInput] = useState("");
+  const [activeThreadMenuId, setActiveThreadMenuId] = useState(null);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [ingestState, setIngestState] = useState({
     status: "idle",
@@ -1461,6 +1468,10 @@ export default function GeniusDashboard() {
       setLanguage(supportedLanguageIds.includes(parsed.language) ? parsed.language : "en");
       setMotionEnabled(parsed.motionEnabled ?? true);
       setVoiceEnabled(parsed.voiceEnabled ?? true);
+      if (typeof parsed.sidebarWidth === "number") {
+        setSidebarWidth(Math.min(maxSidebarWidth, Math.max(minSidebarWidth, parsed.sidebarWidth)));
+      }
+      setSidebarCollapsed(Boolean(parsed.sidebarCollapsed));
       setHistoryReady(true);
     } catch {
       setHistoryReady(true);
@@ -1478,10 +1489,53 @@ export default function GeniusDashboard() {
         archivedThreads,
         language,
         motionEnabled,
+        sidebarCollapsed,
+        sidebarWidth,
         voiceEnabled,
       }),
     );
-  }, [activeThreadId, archivedThreads, chatThreads, historyReady, language, motionEnabled, voiceEnabled]);
+  }, [activeThreadId, archivedThreads, chatThreads, historyReady, language, motionEnabled, sidebarCollapsed, sidebarWidth, voiceEnabled]);
+
+  useEffect(() => {
+    if (!isSidebarResizing) return undefined;
+
+    function handlePointerMove(event) {
+      setSidebarCollapsed(false);
+      setSidebarWidth(Math.min(maxSidebarWidth, Math.max(minSidebarWidth, event.clientX)));
+    }
+
+    function stopResizing() {
+      setIsSidebarResizing(false);
+    }
+
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", stopResizing);
+
+    return () => {
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", stopResizing);
+    };
+  }, [isSidebarResizing]);
+
+  useEffect(() => {
+    if (!activeThreadMenuId) return undefined;
+
+    function closeThreadMenu(event) {
+      const target = event.target;
+      if (target instanceof Element && target.closest(`[data-thread-menu="${activeThreadMenuId}"]`)) return;
+      setActiveThreadMenuId(null);
+    }
+
+    window.addEventListener("click", closeThreadMenu);
+    return () => window.removeEventListener("click", closeThreadMenu);
+  }, [activeThreadMenuId]);
 
   useEffect(() => {
     return () => {
@@ -1565,11 +1619,28 @@ export default function GeniusDashboard() {
 
   function navigate(sectionId) {
     if (sectionId !== activeSection) runPaneMotion();
+    setActiveThreadMenuId(null);
     setActiveSection(sectionId);
   }
 
   function openSettingsPanel() {
     setSettingsOpen(true);
+  }
+
+  function toggleSidebar(event) {
+    event?.preventDefault?.();
+    const now = Date.now();
+    if (now - sidebarToggleGuardRef.current < 180) return;
+    sidebarToggleGuardRef.current = now;
+    setActiveThreadMenuId(null);
+    setSidebarCollapsed((current) => !current);
+  }
+
+  function startSidebarResize(event) {
+    event.preventDefault();
+    setActiveThreadMenuId(null);
+    setSidebarCollapsed(false);
+    setIsSidebarResizing(true);
   }
 
   function toggleGroup(groupTitle) {
@@ -1617,6 +1688,7 @@ export default function GeniusDashboard() {
     const thread = chatThreads.find((item) => item.id === threadId);
     if (!thread) return;
     if (thread.id !== activeThreadId || activeSection !== "chat") runPaneMotion();
+    setActiveThreadMenuId(null);
     setActiveThreadId(thread.id);
     setMessages(thread.messages?.length ? thread.messages : [initialAssistantMessage]);
     setChatInput("");
@@ -1626,6 +1698,7 @@ export default function GeniusDashboard() {
   }
 
   function beginRenameThread(thread) {
+    setActiveThreadMenuId(null);
     setRenamingThreadId(thread.id);
     setRenameDraft(thread.title);
   }
@@ -1634,7 +1707,7 @@ export default function GeniusDashboard() {
     const nextTitle = renameDraft.trim();
     if (!nextTitle) return;
     setChatThreads((current) =>
-      current.map((thread) => (thread.id === threadId ? { ...thread, title: nextTitle, updatedLabel: "Now" } : thread)),
+      current.map((thread) => (thread.id === threadId ? { ...thread, title: nextTitle, updatedLabel: tr("updatedNow") } : thread)),
     );
     setRenamingThreadId(null);
     setRenameDraft("");
@@ -1656,6 +1729,7 @@ export default function GeniusDashboard() {
       ...current.filter((thread) => thread.id !== threadId),
     ]);
     setChatThreads(remainingThreads.length ? remainingThreads : [fallbackThread]);
+    setActiveThreadMenuId(null);
     setRenamingThreadId(null);
     setRenameDraft("");
 
@@ -1672,6 +1746,7 @@ export default function GeniusDashboard() {
     const fallbackThread = remainingThreads[0] ?? createEmptyThread();
 
     setChatThreads(remainingThreads.length ? remainingThreads : [fallbackThread]);
+    setActiveThreadMenuId(null);
     setRenamingThreadId(null);
     setRenameDraft("");
 
@@ -1693,6 +1768,7 @@ export default function GeniusDashboard() {
 
     setArchivedThreads((current) => current.filter((thread) => thread.id !== threadId));
     setChatThreads((current) => [restoredThread, ...current.filter((thread) => thread.id !== threadId)]);
+    setActiveThreadMenuId(null);
 
     if (shouldOpen) {
       runPaneMotion();
@@ -1720,6 +1796,7 @@ export default function GeniusDashboard() {
     };
     setChatThreads((current) => [nextThread, ...current]);
     runPaneMotion();
+    setActiveThreadMenuId(null);
     setActiveThreadId(id);
     setMessages(nextThread.messages);
     setChatInput(prompt);
@@ -3166,6 +3243,7 @@ export default function GeniusDashboard() {
       className={classNames(styles.shell, sidebarCollapsed && styles.shellCollapsed)}
       data-motion={motionEnabled ? "on" : "off"}
       data-theme={theme}
+      style={{ "--sidebar-size": `${sidebarCollapsed ? collapsedSidebarWidth : sidebarWidth}px` }}
     >
       <input
         ref={fileInputRef}
@@ -3195,10 +3273,15 @@ export default function GeniusDashboard() {
           <button
             className={styles.collapseButton}
             type="button"
-            onClick={() => setSidebarCollapsed((current) => !current)}
+            onClick={toggleSidebar}
+            onPointerDown={toggleSidebar}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" && event.key !== " ") return;
+              toggleSidebar(event);
+            }}
             aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {sidebarCollapsed ? ">" : "<"}
+            <span aria-hidden="true">{sidebarCollapsed ? ">" : "<"}</span>
           </button>
         </div>
 
@@ -3230,6 +3313,7 @@ export default function GeniusDashboard() {
             <div
               className={classNames(styles.threadRow, activeThreadId === thread.id && styles.threadRowActive)}
               key={thread.id}
+              data-thread-menu={thread.id}
             >
               {renamingThreadId === thread.id ? (
                 <div className={styles.threadRename}>
@@ -3256,28 +3340,34 @@ export default function GeniusDashboard() {
                 <>
                   <button className={styles.threadButton} type="button" onClick={() => openThread(thread.id)}>
                     <strong>{thread.title}</strong>
-                    <span>{threadPreview(thread, tr("readyForAnalysis"))}</span>
                     <em>{thread.updatedLabel}</em>
                   </button>
-                  <div className={styles.threadActions}>
-                    <button className={styles.threadActionButton} type="button" onClick={() => beginRenameThread(thread)} aria-label={`${tr("rename")} ${thread.title}`} title={tr("rename")}>
-                      <span aria-hidden="true">✎</span>
-                      <strong>{tr("rename")}</strong>
-                    </button>
-                    <button className={styles.threadActionButton} type="button" onClick={() => archiveThread(thread.id)} aria-label={`${tr("archive")} ${thread.title}`} title={tr("archive")}>
-                      <span aria-hidden="true">↓</span>
-                      <strong>{tr("archive")}</strong>
-                    </button>
+                  <div className={styles.threadMenuWrap}>
                     <button
-                      className={classNames(styles.threadActionButton, styles.threadDeleteButton)}
+                      className={styles.threadMoreButton}
                       type="button"
-                      onClick={() => deleteThread(thread.id)}
-                      aria-label={`${tr("delete")} ${thread.title}`}
-                      title={tr("delete")}
+                      onClick={() => setActiveThreadMenuId((current) => (current === thread.id ? null : thread.id))}
+                      aria-label={`${tr("rename")} / ${tr("archive")} / ${tr("delete")}: ${thread.title}`}
+                      aria-expanded={activeThreadMenuId === thread.id}
                     >
-                      <span aria-hidden="true">×</span>
-                      <strong>{tr("delete")}</strong>
+                      <span aria-hidden="true" />
                     </button>
+                    {activeThreadMenuId === thread.id && (
+                      <div className={styles.threadMenu} role="menu">
+                        <button type="button" role="menuitem" onClick={() => beginRenameThread(thread)}>
+                          <span aria-hidden="true">R</span>
+                          {tr("rename")}
+                        </button>
+                        <button type="button" role="menuitem" onClick={() => archiveThread(thread.id)}>
+                          <span aria-hidden="true">A</span>
+                          {tr("archive")}
+                        </button>
+                        <button className={styles.threadMenuDanger} type="button" role="menuitem" onClick={() => deleteThread(thread.id)}>
+                          <span aria-hidden="true">D</span>
+                          {tr("delete")}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -3333,6 +3423,13 @@ export default function GeniusDashboard() {
             <span className={styles.gearIcon} aria-hidden="true" />
           </button>
         </div>
+        <div
+          className={classNames(styles.sidebarResizeHandle, isSidebarResizing && styles.sidebarResizeHandleActive)}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize sidebar"
+          onPointerDown={startSidebarResize}
+        />
       </aside>
 
       <main className={styles.main}>

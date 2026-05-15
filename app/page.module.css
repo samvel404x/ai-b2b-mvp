@@ -29,13 +29,13 @@
   --shadow-soft: 0 10px 34px rgba(0, 0, 0, 0.2);
   --radius: 14px;
   --sidebar-width: 266px;
-  --sidebar-collapsed: 84px;
+  --sidebar-collapsed: 76px;
   --fast: 220ms cubic-bezier(0.16, 1, 0.3, 1);
   --smooth: 520ms cubic-bezier(0.16, 1, 0.3, 1);
 
   min-height: 100vh;
   display: grid;
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-size, var(--sidebar-width)) minmax(0, 1fr);
   overflow: hidden;
   background:
     linear-gradient(120deg, rgba(155, 92, 255, 0.13), transparent 32%),
@@ -107,7 +107,7 @@
 }
 
 .shellCollapsed {
-  grid-template-columns: var(--sidebar-collapsed) minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-size, var(--sidebar-collapsed)) minmax(0, 1fr);
 }
 
 .hiddenInput {
@@ -123,6 +123,7 @@
   top: 0;
   z-index: 30;
   height: 100vh;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -134,9 +135,49 @@
   backdrop-filter: blur(24px);
 }
 
+.sidebarResizeHandle {
+  position: absolute;
+  top: 0;
+  right: -5px;
+  z-index: 70;
+  width: 10px;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.sidebarResizeHandle::after {
+  width: 1px;
+  height: 100%;
+  border-radius: 999px;
+  background: transparent;
+  content: "";
+  opacity: 0;
+  transition:
+    width var(--fast),
+    background var(--fast),
+    box-shadow var(--fast),
+    opacity var(--fast);
+}
+
+.sidebarResizeHandle:hover::after,
+.sidebarResizeHandleActive::after {
+  width: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 18px rgba(155, 92, 255, 0.58);
+  opacity: 1;
+}
+
+.shellCollapsed .sidebarResizeHandle::after {
+  background: var(--line-strong);
+  opacity: 0.38;
+}
+
 .brandCluster {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 34px;
+  grid-template-columns: minmax(0, 1fr) 28px;
   gap: 8px;
   align-items: center;
 }
@@ -279,6 +320,39 @@
   color: var(--text);
 }
 
+.collapseButton {
+  width: 28px;
+  height: 28px;
+  border-color: transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted-2);
+}
+
+.collapseButton span {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  transition:
+    background var(--fast),
+    color var(--fast),
+    transform var(--fast);
+}
+
+.collapseButton:hover {
+  transform: none;
+  border-color: transparent;
+  background: transparent;
+}
+
+.collapseButton:hover span {
+  background: var(--field);
+  color: var(--text);
+  transform: translateX(-1px);
+}
+
 .workspaceCard {
   display: grid;
   gap: 4px;
@@ -405,7 +479,12 @@
 
 .recentThreads {
   display: grid;
-  gap: 5px;
+  gap: 3px;
+  min-width: 0;
+  transition:
+    max-height var(--smooth),
+    opacity var(--smooth),
+    transform var(--smooth);
 }
 
 .recentThreads p {
@@ -449,8 +528,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: stretch;
+  min-height: 34px;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: 10px;
   transition:
     background var(--fast),
     border-color var(--fast),
@@ -458,9 +538,9 @@
 }
 
 .threadRow:hover {
-  transform: translateX(2px);
+  transform: none;
   border-color: var(--line);
-  background: var(--surface-2);
+  background: rgba(255, 255, 255, 0.055);
 }
 
 .threadRowActive {
@@ -469,12 +549,13 @@
 }
 
 .recentThreads .threadButton {
-  min-height: 58px;
+  min-width: 0;
+  min-height: 34px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2px 8px;
+  gap: 8px;
   align-items: center;
-  padding: 9px;
+  padding: 0 5px 0 10px;
   border: 0;
   background: transparent;
   color: inherit;
@@ -490,85 +571,144 @@
 .threadButton strong {
   color: var(--text-soft);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 640;
 }
 
 .threadButton span {
-  grid-column: 1 / -1;
   color: var(--muted);
   font-size: 11px;
 }
 
 .threadButton em {
+  display: none;
   color: var(--muted-2);
   font-size: 10px;
   font-style: normal;
   font-weight: 720;
 }
 
-.threadActions {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  align-content: center;
-  padding: 6px 6px 6px 0;
-  opacity: 0.58;
-  transform: translateX(2px);
-  transition:
-    opacity var(--fast),
-    transform var(--fast);
-}
-
-.threadRow:hover .threadActions,
-.threadRowActive .threadActions {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.recentThreads .threadActions .threadActionButton {
+.threadMenuWrap {
   position: relative;
+  display: grid;
+  place-items: center;
+  padding-right: 5px;
+}
+
+.recentThreads .threadMoreButton {
   width: 26px;
   height: 26px;
   min-height: 26px;
   display: grid;
   place-items: center;
   padding: 0;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.recentThreads .threadActions .threadActionButton span {
-  width: auto;
-  height: auto;
-  display: block;
   background: transparent;
-  color: inherit;
-  font-size: 13px;
-  line-height: 1;
+  color: var(--muted);
+  opacity: 0;
+  transition:
+    background var(--fast),
+    border-color var(--fast),
+    color var(--fast),
+    opacity var(--fast),
+    transform var(--fast);
 }
 
-.recentThreads .threadActions .threadActionButton strong {
+.threadRow:hover .threadMoreButton,
+.threadRowActive .threadMoreButton,
+.threadMoreButton[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.threadMoreButton span,
+.threadMoreButton span::before,
+.threadMoreButton span::after {
+  width: 3px;
+  height: 3px;
+  display: block;
+  border-radius: 999px;
+  background: currentColor;
+  content: "";
+}
+
+.threadMoreButton span {
+  position: relative;
+}
+
+.threadMoreButton span::before,
+.threadMoreButton span::after {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+  top: 0;
 }
 
-.recentThreads .threadActions .threadActionButton:hover {
+.threadMoreButton span::before {
+  left: -6px;
+}
+
+.threadMoreButton span::after {
+  left: 6px;
+}
+
+.recentThreads .threadMoreButton:hover,
+.threadMoreButton[aria-expanded="true"] {
   transform: none;
-  border-color: rgba(155, 92, 255, 0.42);
+  border-color: rgba(155, 92, 255, 0.26);
   background: var(--accent-soft);
   color: var(--accent);
 }
 
-.recentThreads .threadActions .threadDeleteButton:hover {
-  border-color: rgba(255, 111, 139, 0.48);
+.threadMenu {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: 80;
+  width: 156px;
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent),
+    var(--surface);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(22px);
+  animation: menuReveal 170ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.recentThreads .threadMenu button {
+  min-height: 31px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 0 9px;
+  border-radius: 9px;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.recentThreads .threadMenu button:hover {
+  transform: none;
+  border-color: transparent;
+  background: var(--field);
+  color: var(--text);
+}
+
+.threadMenu button span {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 780;
+}
+
+.recentThreads .threadMenu .threadMenuDanger:hover {
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
@@ -3840,11 +3980,31 @@
 .shellCollapsed .navGroupHeader i,
 .shellCollapsed .navItem strong,
 .shellCollapsed .accountButton div {
-  display: none;
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-8px);
+  visibility: hidden;
+  transition:
+    max-width var(--smooth),
+    max-height var(--smooth),
+    opacity var(--smooth),
+    transform var(--smooth),
+    visibility var(--smooth);
+  white-space: nowrap;
+}
+
+.shellCollapsed .workspaceCard,
+.shellCollapsed .recentThreads {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-color: transparent;
 }
 
 .shellCollapsed .collapseButton {
-  width: 46px;
+  width: 28px;
 }
 
 .shellCollapsed .newThreadButton {
@@ -3905,6 +4065,9 @@
 .promptChips button:focus-visible,
 .queueList button:focus-visible,
 .recentThreads button:focus-visible,
+.sidebarResizeHandle:focus-visible,
+.threadMenu button:focus-visible,
+.threadMoreButton:focus-visible,
 .themeCards button:focus-visible {
   outline: 3px solid rgba(155, 92, 255, 0.24);
   outline-offset: 2px;
@@ -3947,6 +4110,18 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes menuReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -4158,7 +4333,7 @@
   .shellCollapsed .brandCluster {
     flex: 0 0 auto;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 34px;
+    grid-template-columns: minmax(0, 1fr) 28px;
   }
 
   .shellCollapsed .brandButton {
@@ -4168,6 +4343,14 @@
 
   .shellCollapsed .brandText {
     display: inline;
+    max-width: none;
+    opacity: 1;
+    transform: none;
+    visibility: visible;
+  }
+
+  .sidebarResizeHandle {
+    display: none;
   }
 
   .workspaceCard {
