@@ -3961,14 +3961,20 @@
 }
 
 .shellCollapsed .brandCluster {
+  width: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
 .shellCollapsed .brandButton {
   justify-content: center;
-  width: 46px;
+  width: 34px;
+  height: 34px;
   padding: 0;
+  border-color: transparent;
+  background: transparent;
 }
 
 .shellCollapsed .brandText,
@@ -4004,34 +4010,186 @@
 }
 
 .shellCollapsed .collapseButton {
-  width: 28px;
+  width: 24px;
+  height: 24px;
+  color: var(--muted-2);
 }
 
 .shellCollapsed .newThreadButton {
+  min-height: 34px;
   justify-content: center;
-  width: 46px;
+  width: 34px;
   padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+.shellCollapsed .newThreadButton:hover {
+  transform: none;
+  border-color: transparent;
+  background: transparent;
+}
+
+.shellCollapsed .newThreadButton span {
+  width: 27px;
+  height: 27px;
+  border: 1px solid rgba(155, 92, 255, 0.42);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.2), transparent 36%),
+    var(--accent);
+  box-shadow: 0 0 18px rgba(155, 92, 255, 0.28);
 }
 
 .shellCollapsed .sidebarActionButton,
 .shellCollapsed .accountButton {
+  min-height: 30px;
   justify-content: center;
-  width: 46px;
+  width: 34px;
   padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+.shellCollapsed .sidebarActionButton:hover,
+.shellCollapsed .accountButton:hover {
+  transform: none;
+  border-color: transparent;
+  background: transparent;
+}
+
+.shellCollapsed .sidebarActionGroup {
+  justify-items: center;
+  gap: 4px;
+}
+
+.shellCollapsed .sidebarActionButton span {
+  width: 29px;
+  height: 25px;
+  border: 1px solid rgba(247, 244, 238, 0.075);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.018);
+  color: var(--muted);
+  font-size: 8px;
+  letter-spacing: 0;
+}
+
+.shellCollapsed .sidebarActionButton:hover span {
+  border-color: rgba(155, 92, 255, 0.28);
+  background: rgba(155, 92, 255, 0.08);
+  color: var(--accent);
 }
 
 .shellCollapsed .sidebarFooter {
   grid-template-columns: 1fr;
   justify-items: center;
+  gap: 6px;
+  padding-top: 8px;
 }
 
 .shellCollapsed .navItem {
+  min-height: 32px;
   justify-content: center;
   padding: 0;
+  border-color: transparent;
+  background: transparent;
+  border-radius: 999px;
+  transform: none;
+}
+
+.shellCollapsed .navItem:hover {
+  transform: none;
+  border-color: transparent;
+  background: transparent;
 }
 
 .shellCollapsed .navItem span {
-  width: 34px;
+  width: 31px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 9px;
+  transition:
+    background var(--fast),
+    border-color var(--fast),
+    color var(--fast),
+    box-shadow var(--fast);
+}
+
+.shellCollapsed .navItem::before {
+  inset: 9px auto 9px -14px;
+  width: 2px;
+  opacity: 0;
+}
+
+.shellCollapsed .navItem:hover span {
+  border-color: rgba(247, 244, 238, 0.08);
+  background: rgba(255, 255, 255, 0.026);
+  color: var(--text-soft);
+}
+
+.shellCollapsed .navItemActive {
+  border-color: transparent;
+  background: transparent;
+}
+
+.shellCollapsed .navItemActive::before {
+  opacity: 1;
+}
+
+.shellCollapsed .navItemActive span {
+  border-color: rgba(155, 92, 255, 0.26);
+  background: rgba(155, 92, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(155, 92, 255, 0.08);
+  color: var(--accent);
+}
+
+.shellCollapsed .navList {
+  align-items: center;
+  gap: 12px;
+  padding-right: 0;
+}
+
+.shellCollapsed .navGroup {
+  width: 100%;
+  justify-items: center;
+}
+
+.shellCollapsed .navGroupItems {
+  width: 100%;
+  justify-items: center;
+  gap: 5px;
+}
+
+.shellCollapsed .accountButton > span {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(155, 92, 255, 0.24);
+  border-radius: 999px;
+  background: rgba(155, 92, 255, 0.08);
+  box-shadow: none;
+  color: var(--accent);
+}
+
+.shellCollapsed .accountButton:hover > span {
+  border-color: rgba(155, 92, 255, 0.4);
+  background: rgba(155, 92, 255, 0.13);
+}
+
+.shellCollapsed .gearButton {
+  width: 30px;
+  height: 30px;
+  border-color: transparent;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.shellCollapsed .gearButton:hover {
+  transform: none;
+  border-color: transparent;
+  background: rgba(155, 92, 255, 0.08);
 }
 
 .primaryButton:focus-visible,
