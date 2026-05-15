@@ -3287,7 +3287,7 @@ export default function GeniusDashboard() {
             }}
             aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <span aria-hidden="true">{sidebarCollapsed ? ">" : "<"}</span>
+            <span aria-hidden="true" />
           </button>
         </div>
 

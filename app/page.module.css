@@ -406,6 +406,7 @@
     linear-gradient(135deg, var(--accent-soft), transparent 70%),
     var(--surface);
   color: var(--text);
+  cursor: pointer;
   transition:
     background var(--fast),
     border-color var(--fast),
@@ -429,6 +430,9 @@
   background: var(--accent);
   color: var(--accent-ink);
   font-weight: 780;
+  transition:
+    box-shadow var(--fast),
+    transform var(--fast);
 }
 
 .newThreadButton strong {
@@ -4031,7 +4035,6 @@
 .shellCollapsed .collapseButton span {
   width: 28px;
   height: 24px;
-  font-size: 13px;
 }
 
 .shellCollapsed .collapseButton span::before {
@@ -4051,12 +4054,17 @@
   padding: 0;
   border-color: transparent;
   background: transparent;
+  cursor: pointer;
 }
 
 .shellCollapsed .newThreadButton:hover {
-  transform: none;
+  transform: translateY(-1px);
   border-color: transparent;
   background: transparent;
+}
+
+.shellCollapsed .newThreadButton:active {
+  transform: translateY(0) scale(0.96);
 }
 
 .shellCollapsed .newThreadButton span {
@@ -4070,6 +4078,13 @@
     radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.2), transparent 36%),
     var(--accent);
   box-shadow: 0 0 18px rgba(155, 92, 255, 0.28);
+}
+
+.shellCollapsed .newThreadButton:hover span {
+  box-shadow:
+    0 0 0 4px rgba(155, 92, 255, 0.11),
+    0 0 22px rgba(155, 92, 255, 0.42);
+  transform: scale(1.04);
 }
 
 .shellCollapsed .sidebarActionButton,
