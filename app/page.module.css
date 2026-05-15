@@ -3965,13 +3965,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .shellCollapsed .brandButton {
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border-color: transparent;
   background: transparent;
@@ -4010,15 +4010,26 @@
 }
 
 .shellCollapsed .collapseButton {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 28px;
   color: var(--muted-2);
 }
 
+.shellCollapsed .collapseButton span {
+  width: 28px;
+  height: 24px;
+  font-size: 13px;
+}
+
+.shellCollapsed .collapseButton:hover span {
+  background: rgba(255, 255, 255, 0.026);
+  transform: none;
+}
+
 .shellCollapsed .newThreadButton {
-  min-height: 34px;
+  min-height: 32px;
   justify-content: center;
-  width: 34px;
+  width: 32px;
   padding: 0;
   border-color: transparent;
   background: transparent;
@@ -4031,8 +4042,10 @@
 }
 
 .shellCollapsed .newThreadButton span {
-  width: 27px;
-  height: 27px;
+  min-width: 30px;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
   border: 1px solid rgba(155, 92, 255, 0.42);
   border-radius: 999px;
   background:
@@ -4043,9 +4056,9 @@
 
 .shellCollapsed .sidebarActionButton,
 .shellCollapsed .accountButton {
-  min-height: 30px;
+  min-height: 32px;
   justify-content: center;
-  width: 34px;
+  width: 32px;
   padding: 0;
   border-color: transparent;
   background: transparent;
@@ -4060,12 +4073,12 @@
 
 .shellCollapsed .sidebarActionGroup {
   justify-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .shellCollapsed .sidebarActionButton span {
-  width: 29px;
-  height: 25px;
+  width: 30px;
+  height: 30px;
   border: 1px solid rgba(247, 244, 238, 0.075);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.018);
@@ -4083,12 +4096,13 @@
 .shellCollapsed .sidebarFooter {
   grid-template-columns: 1fr;
   justify-items: center;
-  gap: 6px;
+  gap: 7px;
   padding-top: 8px;
 }
 
 .shellCollapsed .navItem {
   min-height: 32px;
+  width: 32px;
   justify-content: center;
   padding: 0;
   border-color: transparent;
@@ -4104,8 +4118,8 @@
 }
 
 .shellCollapsed .navItem span {
-  width: 31px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
@@ -4160,7 +4174,7 @@
 .shellCollapsed .navGroupItems {
   width: 100%;
   justify-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .shellCollapsed .accountButton > span {

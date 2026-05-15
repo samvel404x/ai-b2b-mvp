@@ -1500,8 +1500,14 @@ export default function GeniusDashboard() {
     if (!isSidebarResizing) return undefined;
 
     function handlePointerMove(event) {
+      if (event.clientX <= minSidebarWidth) {
+        setSidebarWidth(minSidebarWidth);
+        setSidebarCollapsed(true);
+        return;
+      }
+
       setSidebarCollapsed(false);
-      setSidebarWidth(Math.min(maxSidebarWidth, Math.max(minSidebarWidth, event.clientX)));
+      setSidebarWidth(Math.min(maxSidebarWidth, event.clientX));
     }
 
     function stopResizing() {
