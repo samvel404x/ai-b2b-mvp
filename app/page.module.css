@@ -332,13 +332,25 @@
 .collapseButton span {
   width: 20px;
   height: 20px;
+  position: relative;
   display: grid;
   place-items: center;
   border-radius: 999px;
+  font-size: 0;
   transition:
     background var(--fast),
     color var(--fast),
     transform var(--fast);
+}
+
+.collapseButton span::before {
+  width: 7px;
+  height: 7px;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  content: "";
+  transform: rotate(-135deg);
+  transition: transform var(--fast);
 }
 
 .collapseButton:hover {
@@ -4010,6 +4022,7 @@
 }
 
 .shellCollapsed .collapseButton {
+  align-self: center;
   width: 32px;
   height: 28px;
   color: var(--muted-2);
@@ -4021,12 +4034,17 @@
   font-size: 13px;
 }
 
+.shellCollapsed .collapseButton span::before {
+  transform: rotate(45deg);
+}
+
 .shellCollapsed .collapseButton:hover span {
   background: rgba(255, 255, 255, 0.026);
   transform: none;
 }
 
 .shellCollapsed .newThreadButton {
+  align-self: center;
   min-height: 32px;
   justify-content: center;
   width: 32px;
@@ -4072,8 +4090,13 @@
 }
 
 .shellCollapsed .sidebarActionGroup {
+  width: 100%;
   justify-items: center;
   gap: 6px;
+}
+
+.shellCollapsed .sidebarActionButton {
+  align-self: center;
 }
 
 .shellCollapsed .sidebarActionButton span {
