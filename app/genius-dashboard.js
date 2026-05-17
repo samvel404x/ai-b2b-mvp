@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./page.module.css";
 
+// Sidebar contract: each id maps to one renderer in renderActiveSection.
 const navGroups = [
   {
     id: "command",
@@ -36,6 +37,7 @@ const navGroups = [
   },
 ];
 
+// Demo leak seeds keep the dashboard useful before uploaded evidence creates real findings.
 const baseLeaks = [
   {
     id: "leak-1",
@@ -103,6 +105,7 @@ const baseLeaks = [
   },
 ];
 
+// V1 agent profiles are supervised workflow roles, not autonomous workers.
 const agentProfiles = [
   {
     id: "contract",
@@ -154,6 +157,7 @@ const agentProfiles = [
   },
 ];
 
+// Seed approvals demonstrate the future decision queue until backend actions are added.
 const approvals = [
   {
     id: "approval-1",
@@ -184,6 +188,7 @@ const approvals = [
   },
 ];
 
+// Baseline source health gives the dashboard a stable starting point before real imports.
 const baseSources = [
   { id: "source-1", name: "Vendor contracts", nameKey: "sourceVendorContractsName", count: 18, status: "11 verified", statusKey: "sourceVendorContractsStatus", type: "PDF", health: 78 },
   { id: "source-2", name: "Invoices", nameKey: "sourceInvoicesName", count: 42, status: "6 need review", statusKey: "sourceInvoicesStatus", type: "PDF / CSV", health: 64 },
@@ -191,40 +196,44 @@ const baseSources = [
   { id: "source-4", name: "Owner map", nameKey: "sourceOwnerMapName", count: 31, status: "9 missing owners", statusKey: "sourceOwnerMapStatus", type: "Table", typeKey: "typeTable", health: 58 },
 ];
 
+// Report seeds preview the reports module before weekly report generation is wired.
 const reports = [
   { title: "Weekly leak summary", titleKey: "reportWeeklyTitle", detail: "3 urgent actions before Friday", detailKey: "reportWeeklyDetail", status: "Ready" },
   { title: "Renewal risk report", titleKey: "reportRenewalTitle", detail: "$11,020 exposed in 30 days", detailKey: "reportRenewalDetail", status: "Draft" },
   { title: "Savings proof pack", titleKey: "reportSavingsTitle", detail: "Evidence for confirmed wins", detailKey: "reportSavingsDetail", status: "Build" },
 ];
 
+// MVP exposes one real AI provider; advanced modes stay locked until backend quality is proven.
 const modelOptions = [
   {
-    id: "fast",
-    name: "Genius Fast",
-    badge: "Fast",
-    description: "Quick triage for files, renewals, and straightforward questions.",
+    id: "mvp",
+    name: "Genius MVP",
+    badge: "Gemini",
+    description: "Active V1 mode: Gemini 2.5 Flash free-tier extraction with human review.",
   },
   {
     id: "deep",
     name: "Genius Deep",
-    badge: "Smart",
-    description: "Balanced reasoning for evidence-backed analysis and dashboard updates.",
+    badge: "Locked",
+    description: "Closed for MVP. Later: deeper paid/provider-agnostic reasoning after backend is stable.",
+    disabled: true,
   },
   {
     id: "audit",
     name: "Genius Audit",
-    badge: "Pro",
-    description: "Stricter financial review, source checks, and approval-safe outputs.",
+    badge: "Locked",
+    description: "Closed for MVP. Later: stricter audit workflows and stronger evidence checks.",
+    disabled: true,
   },
   {
     id: "agents",
     name: "Genius Agents",
     badge: "Soon",
-    description: "Multi-agent workflow orchestration for future plugins.",
+    description: "Future supervised agents. V1 uses Gemini extraction only, no autonomous actions.",
     disabled: true,
   },
 ];
-const supportedExtensions = [".pdf", ".csv", ".txt", ".xlsx", ".xls", ".doc", ".docx"];
+const supportedExtensions = [".pdf", ".csv", ".txt", ".xlsx", ".xls", ".doc", ".docx", ".png", ".jpg", ".jpeg", ".webp"];
 const maxUploadBytes = 20 * 1024 * 1024;
 const initialAssistantMessage = {
   role: "assistant",
@@ -234,6 +243,7 @@ const chatStorageKey = "genius-chat-history-v2";
 const minSidebarWidth = 224;
 const maxSidebarWidth = 360;
 const collapsedSidebarWidth = 76;
+// Local demo threads are only initial state; real chat responses now stream from /api/chat.
 const defaultChatThreads = [
   {
     id: "thread-default",
@@ -263,6 +273,7 @@ const defaultChatThreads = [
   },
 ];
 
+// Language settings drive UI copy and tell Gemini which language the user prefers.
 const languageOptions = [
   { id: "en", label: "English", native: "English" },
   { id: "ru", label: "Russian", native: "Русский" },
@@ -277,6 +288,7 @@ const voiceLocaleMap = {
   hy: "hy-AM",
 };
 
+// Settings tabs are local UI modules; each tab renders inside SettingsDrawer.
 const settingsTabs = [
   { id: "general", label: "General", icon: "G" },
   { id: "appearance", label: "Appearance", icon: "A" },
@@ -289,6 +301,7 @@ const settingsTabs = [
   { id: "account", label: "Account", icon: "U" },
 ];
 
+// All visible product copy lives here so the UI can switch languages without route changes.
 const copy = {
   en: {
     chat: "Chat",
@@ -1335,21 +1348,6 @@ function formatCurrency(value) {
   return `$${value.toLocaleString("en-US")}`;
 }
 
-function fileSizeLabel(size) {
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function sourceKindFromName(name) {
-  const lowerName = name.toLowerCase();
-  if (lowerName.startsWith("http")) return "URL";
-  if (lowerName.endsWith(".csv")) return "CSV";
-  if (lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) return "Excel";
-  if (lowerName.endsWith(".pdf")) return "PDF";
-  return "Document";
-}
-
 function statusTone(status) {
   if (status === "Approved" || status === "Active" || status === "Ready") return "success";
   if (status === "Rejected" || status === "Paused") return "danger";
@@ -1381,10 +1379,39 @@ function createThreadTitle(text, fallbackTitle = "New analysis") {
   return trimmed.length > 42 ? `${trimmed.slice(0, 42)}...` : trimmed;
 }
 
+// Gives streamed chat messages stable keys while keeping old seeded messages compatible.
+function createMessageId(role) {
+  return `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// Sends only compact evidence metadata to chat so the model can cite context safely.
+function evidenceForChat(files) {
+  return files.map((file) => ({
+    id: file.id,
+    name: file.name,
+    kind: file.kind,
+    status: file.status,
+    provider: file.provider,
+    fields: file.fields,
+  }));
+}
+
+// Replaces the streaming assistant placeholder with the latest model text.
+function updateMessageText(messageList, messageId, text) {
+  return messageList.map((message) => (message.id === messageId ? { ...message, text } : message));
+}
+
 function threadPreview(thread, fallback = "Ready for analysis") {
   const threadMessages = Array.isArray(thread.messages) ? thread.messages : [];
   const lastMessage = [...threadMessages].reverse().find((message) => message.role !== "system");
   return lastMessage?.text ?? fallback;
+}
+
+// Merges fresh backend evidence into the visible list without duplicating records.
+function mergeEvidenceRecords(current, incoming) {
+  const nextRecords = Array.isArray(incoming) ? incoming : [];
+  const nextIds = new Set(nextRecords.map((record) => record.id));
+  return [...nextRecords, ...current.filter((record) => !nextIds.has(record.id))];
 }
 
 export default function GeniusDashboard() {
@@ -1392,7 +1419,6 @@ export default function GeniusDashboard() {
   const chatFileInputRef = useRef(null);
   const urlInputRef = useRef(null);
   const recognitionRef = useRef(null);
-  const paneMotionTimerRef = useRef(null);
   const sidebarToggleGuardRef = useRef(0);
   const [theme, setTheme] = useState("black");
   const [language, setLanguage] = useState("en");
@@ -1401,7 +1427,6 @@ export default function GeniusDashboard() {
   const [micState, setMicState] = useState("idle");
   const [micStatus, setMicStatus] = useState("");
   const [activeSection, setActiveSection] = useState("chat");
-  const [paneMotionState, setPaneMotionState] = useState("ready");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(266);
   const [isSidebarResizing, setIsSidebarResizing] = useState(false);
@@ -1413,7 +1438,7 @@ export default function GeniusDashboard() {
   const [authPassword, setAuthPassword] = useState("");
   const [authStatus, setAuthStatus] = useState({ type: "idle", messageKey: "authNoticeIdle", email: "" });
   const [session, setSession] = useState(null);
-  const [selectedModel, setSelectedModel] = useState("deep");
+  const [selectedModel, setSelectedModel] = useState("mvp");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [pluginFilter, setPluginFilter] = useState("all");
@@ -1424,11 +1449,21 @@ export default function GeniusDashboard() {
   const [chatInput, setChatInput] = useState("");
   const [activeThreadMenuId, setActiveThreadMenuId] = useState(null);
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [workspaceFindings, setWorkspaceFindings] = useState([]);
+  const [workspaceActions, setWorkspaceActions] = useState([]);
+  const [workspaceAgentRuns, setWorkspaceAgentRuns] = useState([]);
+  const [workspaceNotifications, setWorkspaceNotifications] = useState([]);
+  const [workspaceAuditLog, setWorkspaceAuditLog] = useState([]);
+  const [workspaceConnectors, setWorkspaceConnectors] = useState([]);
+  const [workspaceMetrics, setWorkspaceMetrics] = useState({});
   const [ingestState, setIngestState] = useState({
     status: "idle",
     messageKey: "ingestIdle",
   });
+  const [reviewDrafts, setReviewDrafts] = useState({});
+  const [reviewSaveState, setReviewSaveState] = useState({ status: "idle", recordId: null });
   const [messages, setMessages] = useState([initialAssistantMessage]);
+  const [chatStreaming, setChatStreaming] = useState(false);
   const [chatThreads, setChatThreads] = useState(defaultChatThreads);
   const [archivedThreads, setArchivedThreads] = useState([]);
   const [activeThreadId, setActiveThreadId] = useState(defaultChatThreads[0].id);
@@ -1497,6 +1532,39 @@ export default function GeniusDashboard() {
   }, [activeThreadId, archivedThreads, chatThreads, historyReady, language, motionEnabled, sidebarCollapsed, sidebarWidth, voiceEnabled]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Hydrates every working section from the backend workspace source of truth.
+    async function loadSavedWorkspace() {
+      try {
+        const workspace = await fetchWorkspaceSnapshot();
+        if (cancelled || !workspace) return;
+
+        applyWorkspaceState(workspace);
+        if (workspace.evidence?.length) {
+          setIngestState({
+            status: "ready",
+            message: `Loaded ${workspace.evidence.length} saved evidence source${workspace.evidence.length > 1 ? "s" : ""}.`,
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setIngestState({
+            status: "error",
+            message: "Saved workspace could not be loaded. Upload still works for this session.",
+          });
+        }
+      }
+    }
+
+    loadSavedWorkspace();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isSidebarResizing) return undefined;
 
     function handlePointerMove(event) {
@@ -1546,7 +1614,6 @@ export default function GeniusDashboard() {
   useEffect(() => {
     return () => {
       recognitionRef.current?.stop?.();
-      window.clearTimeout(paneMotionTimerRef.current);
     };
   }, []);
 
@@ -1569,24 +1636,79 @@ export default function GeniusDashboard() {
     [uploadedFiles],
   );
 
-  const leaks = useMemo(() => [...uploadedLeaks, ...baseLeaks], [uploadedLeaks]);
+  const backendLeaks = useMemo(
+    () =>
+      workspaceFindings.map((finding) => ({
+        id: finding.id,
+        title: finding.title,
+        category: finding.category,
+        impact: finding.impact,
+        confidence: `${finding.confidence ?? 70}%`,
+        severity: finding.severity,
+        owner: finding.owner,
+        source: finding.source,
+        action: finding.recommendedAction,
+      })),
+    [workspaceFindings],
+  );
+  const leaks = useMemo(() => {
+    const liveLeaks = backendLeaks.length ? backendLeaks : uploadedLeaks;
+    return [...liveLeaks, ...baseLeaks];
+  }, [backendLeaks, uploadedLeaks]);
+  const approvalItems = useMemo(
+    () =>
+      workspaceActions.length
+        ? workspaceActions.map((action) => ({
+            id: action.id,
+            title: action.title,
+            owner: action.owner,
+            impact: action.impact,
+            status: action.status,
+            description: action.description,
+          }))
+        : approvals,
+    [workspaceActions],
+  );
+  const agentItems = useMemo(
+    () =>
+      agentProfiles.map((agent) => {
+        const run = workspaceAgentRuns.find((item) => item.agentId === agent.id);
+        return {
+          ...agent,
+          status: run?.status || agentState[agent.id],
+          workload: run ? `${run.workload} items` : agent.workload,
+          guardrail: run?.guardrail || agent.guardrail,
+          focus: run?.capability || agent.focus,
+        };
+      }),
+    [agentState, workspaceAgentRuns],
+  );
   const tr = (key) => getCopy(language, key);
   const fieldText = (item, field) => {
     const key = item?.[`${field}Key`];
     return key ? tr(key) : item?.[field] ?? "";
   };
+  const activeEvidence = uploadedFiles[0] ?? null;
+  const activeReviewFields = activeEvidence
+    ? reviewDrafts[activeEvidence.id] ?? activeEvidence.fields ?? {}
+    : {
+        vendor: tr("uploadFileFirst"),
+        renewal: tr("pending"),
+        notice: tr("pending"),
+        value: tr("pending"),
+      };
   const ingestMessage = ingestState.messageKey ? tr(ingestState.messageKey) : ingestState.message;
   const statusLabel = (status) => tr(statusCopyKey(status));
   const activeLabel = tr(activeSection);
   const languageMeta = languageOptions.find((option) => option.id === language) ?? languageOptions[0];
-  const moneyAtRisk = leaks.reduce((sum, leak) => sum + leak.impact, 0);
-  const approvedCount = Object.values(approvalState).filter((status) => status === "Approved").length;
-  const openApprovalCount = approvals.length - approvedCount;
+  const moneyAtRisk = workspaceMetrics.moneyAtRisk ?? leaks.reduce((sum, leak) => sum + leak.impact, 0);
+  const approvedCount = approvalItems.filter((approval) => (workspaceActions.length ? approval.status : approvalState[approval.id]) === "Approved").length;
+  const openApprovalCount = approvalItems.filter((approval) => !["Approved", "Rejected", "Done"].includes(workspaceActions.length ? approval.status : approvalState[approval.id])).length;
   const dataCoverage = Math.min(68 + uploadedFiles.length * 5, 96);
   const sourceCount = baseSources.reduce((sum, source) => sum + source.count, 0) + uploadedFiles.length;
-  const activeAgentCount = Object.values(agentState).filter((status) => status !== "Paused").length;
+  const activeAgentCount = agentItems.filter((agent) => agent.status !== "Paused").length;
   const isFreshChat = messages.length <= 1 && uploadedFiles.length === 0;
-  const selectedModelConfig = modelOptions.find((model) => model.id === selectedModel) ?? modelOptions[1];
+  const selectedModelConfig = modelOptions.find((model) => model.id === selectedModel) ?? modelOptions[0];
   const settingsLabel = (tabId) => tr(`settings${tabId.slice(0, 1).toUpperCase()}${tabId.slice(1)}`);
   const authStatusText =
     authStatus.messageKey === "authNoticeSignedIn"
@@ -1614,19 +1736,13 @@ export default function GeniusDashboard() {
     { id: "confidence", label: tr("indicatorSavingsConfidence"), value: Math.min(74 + uploadedFiles.length * 4, 94), tone: "danger", detail: `${leaks.length} ${tr("findingsRanked")}` },
   ];
 
-  function runPaneMotion() {
-    if (!motionEnabled) return;
-    window.clearTimeout(paneMotionTimerRef.current);
-    setPaneMotionState("switching");
-    paneMotionTimerRef.current = window.setTimeout(() => {
-      setPaneMotionState("ready");
-    }, 520);
+  function activateSection(sectionId) {
+    setActiveSection(sectionId);
   }
 
   function navigate(sectionId) {
-    if (sectionId !== activeSection) runPaneMotion();
     setActiveThreadMenuId(null);
-    setActiveSection(sectionId);
+    activateSection(sectionId);
   }
 
   function openSettingsPanel() {
@@ -1662,6 +1778,33 @@ export default function GeniusDashboard() {
     setModelMenuOpen(false);
   }
 
+  // Reads the backend workspace snapshot used by Dashboard, Agents, Approvals, and Reports.
+  async function fetchWorkspaceSnapshot() {
+    const response = await fetch("/api/workspace", { cache: "no-store" });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.workspace ?? null;
+  }
+
+  // Applies backend state to every frontend section without losing local chat state.
+  function applyWorkspaceState(workspace) {
+    setUploadedFiles(Array.isArray(workspace.evidence) ? workspace.evidence : []);
+    setWorkspaceFindings(Array.isArray(workspace.findings) ? workspace.findings : []);
+    setWorkspaceActions(Array.isArray(workspace.actions) ? workspace.actions : []);
+    setWorkspaceAgentRuns(Array.isArray(workspace.agentRuns) ? workspace.agentRuns : []);
+    setWorkspaceNotifications(Array.isArray(workspace.notifications) ? workspace.notifications : []);
+    setWorkspaceAuditLog(Array.isArray(workspace.auditLog) ? workspace.auditLog : []);
+    setWorkspaceConnectors(Array.isArray(workspace.connectors) ? workspace.connectors : []);
+    setWorkspaceMetrics(workspace.metrics && typeof workspace.metrics === "object" ? workspace.metrics : {});
+  }
+
+  // Refreshes derived backend data after upload, review, approval, or agent run.
+  async function refreshWorkspaceState() {
+    const workspace = await fetchWorkspaceSnapshot();
+    if (workspace) applyWorkspaceState(workspace);
+    return workspace;
+  }
+
   function createEmptyThread() {
     return {
       id: `thread-${Date.now()}`,
@@ -1693,14 +1836,13 @@ export default function GeniusDashboard() {
   function openThread(threadId) {
     const thread = chatThreads.find((item) => item.id === threadId);
     if (!thread) return;
-    if (thread.id !== activeThreadId || activeSection !== "chat") runPaneMotion();
     setActiveThreadMenuId(null);
     setActiveThreadId(thread.id);
     setMessages(thread.messages?.length ? thread.messages : [initialAssistantMessage]);
     setChatInput("");
     setAttachmentMenuOpen(false);
     setMicStatus("");
-    setActiveSection("chat");
+    activateSection("chat");
   }
 
   function beginRenameThread(thread) {
@@ -1743,7 +1885,7 @@ export default function GeniusDashboard() {
       setActiveThreadId(fallbackThread.id);
       setMessages(fallbackThread.messages?.length ? fallbackThread.messages : [initialAssistantMessage]);
       setChatInput("");
-      setActiveSection("chat");
+      activateSection("chat");
     }
   }
 
@@ -1760,7 +1902,7 @@ export default function GeniusDashboard() {
       setActiveThreadId(fallbackThread.id);
       setMessages(fallbackThread.messages?.length ? fallbackThread.messages : [initialAssistantMessage]);
       setChatInput("");
-      setActiveSection("chat");
+      activateSection("chat");
     }
   }
 
@@ -1777,13 +1919,12 @@ export default function GeniusDashboard() {
     setActiveThreadMenuId(null);
 
     if (shouldOpen) {
-      runPaneMotion();
       setActiveThreadId(restoredThread.id);
       setMessages(restoredThread.messages?.length ? restoredThread.messages : [initialAssistantMessage]);
       setSettingsOpen(false);
       setChatInput("");
       setAttachmentMenuOpen(false);
-      setActiveSection("chat");
+      activateSection("chat");
     }
   }
 
@@ -1801,13 +1942,12 @@ export default function GeniusDashboard() {
       messages: [initialAssistantMessage],
     };
     setChatThreads((current) => [nextThread, ...current]);
-    runPaneMotion();
     setActiveThreadMenuId(null);
     setActiveThreadId(id);
     setMessages(nextThread.messages);
     setChatInput(prompt);
     setAttachmentMenuOpen(false);
-    setActiveSection("chat");
+    activateSection("chat");
   }
 
   function toggleVoiceInput() {
@@ -1879,7 +2019,8 @@ export default function GeniusDashboard() {
     event.target.value = "";
   }
 
-  function handleFiles(files, source = "Data Intake") {
+  // Sends user-selected files to the backend extraction route and updates the review queue.
+  async function handleFiles(files, source = "Data Intake") {
     const fileList = Array.from(files ?? []);
     if (!fileList.length) return;
 
@@ -1891,9 +2032,9 @@ export default function GeniusDashboard() {
     if (unsupportedFile) {
       setIngestState({
         status: "error",
-        message: `${unsupportedFile.name} is not supported. Use PDF, CSV, XLSX, DOCX, TXT under 20 MB.`,
+        message: `${unsupportedFile.name} is not supported. Use PDF, CSV, XLSX, DOCX, TXT, PNG, JPG, or WEBP under 20 MB.`,
       });
-      setActiveSection("data");
+      activateSection("data");
       return;
     }
 
@@ -1901,51 +2042,65 @@ export default function GeniusDashboard() {
       status: "processing",
       message: `Reading ${fileList.length} file${fileList.length > 1 ? "s" : ""}, extracting fields, and scoring exposure.`,
     });
+    activateSection(source === "AI Workspace" ? "chat" : "data");
 
-    const prepared = fileList.map((file, index) => ({
-      id: `${Date.now()}-${index}-${file.name}`,
-      name: file.name,
-      size: fileSizeLabel(file.size),
-      type: file.type || "Unknown",
-      kind: sourceKindFromName(file.name),
-      status: "Analyzed",
-      fields: {
-        vendor: file.name.replace(/\.[^.]+$/, "").slice(0, 28) || "Uploaded vendor",
-        renewal: `2026-0${(index % 6) + 4}-18`,
-        notice: `${30 + index * 15} days`,
-        value: formatCurrency(2400 + index * 850),
-      },
-    }));
+    const formData = new FormData();
+    fileList.forEach((file) => formData.append("files", file));
+    formData.append("source", source);
 
-    setUploadedFiles((current) => [...prepared, ...current]);
-    commitThreadMessages(
-      [
-        ...messages,
-        {
-          role: "assistant",
-          text: `${source}: analyzed ${prepared.length} file${prepared.length > 1 ? "s" : ""}. I updated exposure, evidence, Data Intake, and Savings Radar.`,
-        },
-      ],
-      prepared[0]?.name ? `Analyze ${prepared[0].name}` : undefined,
-    );
-    setActiveSection(source === "AI Workspace" ? "chat" : "data");
+    try {
+      const response = await fetch("/api/evidence", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = await response.json().catch(() => ({}));
 
-    window.setTimeout(() => {
+      if (!response.ok) {
+        throw new Error(payload.error || "Evidence upload failed.");
+      }
+
+      const prepared = Array.isArray(payload.evidence) ? payload.evidence : [];
+      const needsGeminiKey = prepared.some((file) => file.providerStatus === "needs_key");
+      const rateLimited = prepared.some((file) => file.providerStatus === "rate_limited");
+      const statusNote = needsGeminiKey
+        ? " Gemini key is not configured, so GENIUS used local extraction fallback."
+        : rateLimited
+          ? " Gemini free tier rate limit was reached, so review fallback extraction."
+          : "";
+
+      setUploadedFiles((current) => mergeEvidenceRecords(current, prepared));
+      await refreshWorkspaceState();
+      commitThreadMessages(
+        [
+          ...messages,
+          {
+            role: "assistant",
+            text: `${source}: analyzed ${prepared.length} file${prepared.length > 1 ? "s" : ""}. I updated exposure, evidence, Data Intake, and Savings Radar.${statusNote}`,
+          },
+        ],
+        prepared[0]?.name ? `Analyze ${prepared[0].name}` : undefined,
+      );
       setIngestState({
         status: "ready",
-        message: `${prepared.length} file${prepared.length > 1 ? "s" : ""} analyzed. Review extracted fields before approving actions.`,
+        message: `${prepared.length} file${prepared.length > 1 ? "s" : ""} analyzed. Review extracted fields before approving actions.${statusNote}`,
       });
-    }, 420);
+    } catch (error) {
+      setIngestState({
+        status: "error",
+        message: error.message || "Evidence upload failed. Check the file and try again.",
+      });
+    }
   }
 
-  function handleUrlAnalysis(source = "Data Intake") {
+  // Sends a public URL to the backend crawler/analyzer instead of creating simulated data.
+  async function handleUrlAnalysis(source = "Data Intake") {
     const rawValue = (urlInputRef.current?.value || urlInput).trim();
     if (!rawValue) {
       setIngestState({
         status: "error",
         message: "Enter a website or source URL before running link analysis.",
       });
-      setActiveSection(source === "AI Workspace" ? "chat" : "data");
+      activateSection(source === "AI Workspace" ? "chat" : "data");
       return;
     }
 
@@ -1959,67 +2114,158 @@ export default function GeniusDashboard() {
         status: "error",
         message: "This link is not valid. Use a complete business website, document URL, or data source URL.",
       });
-      setActiveSection(source === "AI Workspace" ? "chat" : "data");
+      activateSection(source === "AI Workspace" ? "chat" : "data");
       return;
     }
 
     const hostName = parsedUrl.hostname.replace(/^www\./, "");
-    const prepared = {
-      id: `${Date.now()}-url-${hostName}`,
-      name: hostName,
-      size: "URL",
-      type: "Website / Link",
-      kind: "URL",
-      status: "Analyzed",
-      fields: {
-        vendor: hostName,
-        renewal: "Not detected",
-        notice: "Pending crawl",
-        value: "Source connected",
-      },
-    };
 
     setIngestState({
       status: "processing",
       message: `Analyzing ${hostName}, extracting business context, and preparing evidence signals.`,
     });
-    setUploadedFiles((current) => [prepared, ...current]);
-    commitThreadMessages(
-      [
-        ...messages,
-        {
-          role: "assistant",
-          text: `${source}: connected ${hostName}. I added it to Data Intake and updated the context packet for link analysis.`,
-        },
-      ],
-      `Analyze ${hostName}`,
-    );
-    setUrlInput("");
-    setAttachmentMenuOpen(false);
-    setActiveSection(source === "AI Workspace" ? "chat" : "data");
+    activateSection(source === "AI Workspace" ? "chat" : "data");
 
-    window.setTimeout(() => {
+    try {
+      const response = await fetch("/api/sources/url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: parsedUrl.toString(), source }),
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload.error || "URL analysis failed.");
+      }
+
+      const prepared = payload.evidence;
+      if (prepared) {
+        setUploadedFiles((current) => mergeEvidenceRecords(current, [prepared]));
+      }
+      await refreshWorkspaceState();
+      commitThreadMessages(
+        [
+          ...messages,
+          {
+            role: "assistant",
+            text: `${source}: analyzed ${hostName}. I added URL evidence to Data Intake, Savings Radar, and the approval-first workspace.`,
+          },
+        ],
+        `Analyze ${hostName}`,
+      );
+      setUrlInput("");
+      setAttachmentMenuOpen(false);
       setIngestState({
         status: "ready",
         message: `${hostName} analyzed. Review extracted signals before using them in approvals.`,
       });
-    }, 420);
+    } catch (error) {
+      setIngestState({
+        status: "error",
+        message: error.message || "URL analysis failed. Check the link and try again.",
+      });
+    }
   }
 
-  function removeUploadedFile(fileId) {
+  // Deletes one evidence source in the UI first, then persists the delete through the API.
+  async function removeUploadedFile(fileId) {
+    const removedFile = uploadedFiles.find((file) => file.id === fileId);
     setUploadedFiles((current) => current.filter((file) => file.id !== fileId));
     setIngestState({
       status: "ready",
       message: "Evidence source removed. Dashboard exposure and context packet were recalculated.",
     });
+
+    if (!removedFile) return;
+
+    try {
+      const response = await fetch(`/api/evidence/${encodeURIComponent(fileId)}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Evidence source could not be removed from storage.");
+      await refreshWorkspaceState();
+    } catch (error) {
+      setUploadedFiles((current) => mergeEvidenceRecords(current, [removedFile]));
+      setIngestState({
+        status: "error",
+        message: error.message || "Evidence source could not be removed from storage.",
+      });
+    }
   }
 
-  function clearUploadedFiles() {
+  // Clears the full evidence queue locally and in the MVP store.
+  async function clearUploadedFiles() {
+    const previousFiles = uploadedFiles;
     setUploadedFiles([]);
     setIngestState({
       status: "idle",
       message: "All uploaded evidence has been cleared. Connect files or links to rebuild the dashboard state.",
     });
+
+    try {
+      const response = await fetch("/api/evidence", { method: "DELETE" });
+      if (!response.ok) throw new Error("Evidence sources could not be cleared from storage.");
+      await refreshWorkspaceState();
+    } catch (error) {
+      setUploadedFiles(previousFiles);
+      setIngestState({
+        status: "error",
+        message: error.message || "Evidence sources could not be cleared from storage.",
+      });
+    }
+  }
+
+  // Keeps review edits local until the user explicitly saves confirmed fields.
+  function updateReviewField(recordId, field, value) {
+    const record = uploadedFiles.find((file) => file.id === recordId);
+    setReviewDrafts((current) => ({
+      ...current,
+      [recordId]: {
+        ...(record?.fields ?? {}),
+        ...(current[recordId] ?? {}),
+        [field]: value,
+      },
+    }));
+  }
+
+  // Persists human-confirmed extraction fields; agents cannot act on unsaved raw output.
+  async function saveReviewedFields() {
+    if (!activeEvidence) return;
+
+    const fields = reviewDrafts[activeEvidence.id] ?? activeEvidence.fields;
+    setReviewSaveState({ status: "saving", recordId: activeEvidence.id });
+
+    try {
+      const response = await fetch(`/api/evidence/${encodeURIComponent(activeEvidence.id)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fields }),
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Reviewed fields could not be saved.");
+      }
+
+      setUploadedFiles((current) =>
+        current.map((file) => (file.id === activeEvidence.id ? payload.evidence : file)),
+      );
+      await refreshWorkspaceState();
+      setReviewDrafts((current) => {
+        const next = { ...current };
+        delete next[activeEvidence.id];
+        return next;
+      });
+      setIngestState({
+        status: "ready",
+        message: `${activeEvidence.name} reviewed and saved. Dashboard data now uses confirmed fields.`,
+      });
+      setReviewSaveState({ status: "saved", recordId: activeEvidence.id });
+    } catch (error) {
+      setIngestState({
+        status: "error",
+        message: error.message || "Reviewed fields could not be saved.",
+      });
+      setReviewSaveState({ status: "error", recordId: activeEvidence.id });
+    }
   }
 
   function handleDrop(event) {
@@ -2027,22 +2273,61 @@ export default function GeniusDashboard() {
     handleFiles(event.dataTransfer.files, "Data Intake");
   }
 
-  function handleSendMessage() {
+  // Sends the current conversation to Gemini and streams the answer into the last assistant message.
+  async function handleSendMessage() {
     const trimmed = chatInput.trim();
-    if (!trimmed) return;
+    if (!trimmed || chatStreaming) return;
 
-    commitThreadMessages(
-      [
-        ...messages,
-        { role: "user", text: trimmed },
-      {
-        role: "assistant",
-        text: `${selectedModelConfig.name}: first priority is "${fieldText(leaks[0], "title") || tr("uploadBusinessData")}". I will keep all actions in approval mode and cite source evidence.`,
-      },
-      ],
-      createThreadTitle(trimmed),
-    );
+    const title = createThreadTitle(trimmed);
+    const userMessage = { id: createMessageId("user"), role: "user", text: trimmed };
+    const assistantMessage = { id: createMessageId("assistant"), role: "assistant", text: "Thinking with Gemini..." };
+    const nextMessages = [...messages, userMessage, assistantMessage];
+
+    commitThreadMessages(nextMessages, title);
     setChatInput("");
+    setChatStreaming(true);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: nextMessages.filter((message) => message.id !== assistantMessage.id),
+          evidence: evidenceForChat(uploadedFiles),
+          language,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "Gemini chat request failed.");
+      }
+
+      if (!response.body) {
+        throw new Error("Gemini did not return a stream.");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let streamedText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        streamedText += decoder.decode(value, { stream: true });
+        commitThreadMessages(updateMessageText(nextMessages, assistantMessage.id, streamedText || "Thinking with Gemini..."), title);
+      }
+
+      streamedText += decoder.decode();
+      const finalText = streamedText.trim() || "Gemini returned an empty answer. Try again with more evidence or a narrower question.";
+      commitThreadMessages(updateMessageText(nextMessages, assistantMessage.id, finalText), title);
+    } catch (error) {
+      const errorText = `Gemini chat is not available yet: ${error.message || "request failed"}`;
+      commitThreadMessages(updateMessageText(nextMessages, assistantMessage.id, errorText), title);
+    } finally {
+      setChatStreaming(false);
+    }
   }
 
   function handleComposerKeyDown(event) {
@@ -2068,8 +2353,26 @@ export default function GeniusDashboard() {
     }, 360);
   }
 
-  function applyApproval(id, status) {
+  async function applyApproval(id, status) {
     setApprovalState((current) => ({ ...current, [id]: status }));
+
+    if (!workspaceActions.some((action) => action.id === id)) return;
+
+    try {
+      const response = await fetch(`/api/actions/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Approval update failed.");
+      await refreshWorkspaceState();
+    } catch (error) {
+      setIngestState({
+        status: "error",
+        message: error.message || "Approval update failed.",
+      });
+    }
   }
 
   function toggleAgent(id) {
@@ -2079,18 +2382,39 @@ export default function GeniusDashboard() {
     }));
   }
 
-  function renderActiveSection() {
-    if (activeSection === "chat") return renderChat();
-    if (activeSection === "data") return renderDataIntake();
-    if (activeSection === "analytics") return renderAnalytics();
-    if (activeSection === "leaks") return renderLeaks();
-    if (activeSection === "agents") return renderAgents();
-    if (activeSection === "approvals") return renderApprovals();
-    if (activeSection === "reports") return renderReports();
-    if (activeSection === "plugins") return renderPlugins();
+  // Rebuilds supervised agent outputs from confirmed evidence and refreshes all sections.
+  async function runAgentRefresh() {
+    try {
+      const response = await fetch("/api/agents/run", { method: "POST" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Agent refresh failed.");
+      if (payload.workspace) applyWorkspaceState(payload.workspace);
+      setIngestState({
+        status: "ready",
+        message: "Supervised agents refreshed findings, actions, and approval notifications.",
+      });
+    } catch (error) {
+      setIngestState({
+        status: "error",
+        message: error.message || "Agent refresh failed.",
+      });
+    }
+  }
+
+  // Central router for dashboard sections; keeps navigation state separate from rendering.
+  function renderActiveSection(sectionId = activeSection) {
+    if (sectionId === "chat") return renderChat();
+    if (sectionId === "data") return renderDataIntake();
+    if (sectionId === "analytics") return renderAnalytics();
+    if (sectionId === "leaks") return renderLeaks();
+    if (sectionId === "agents") return renderAgents();
+    if (sectionId === "approvals") return renderApprovals();
+    if (sectionId === "reports") return renderReports();
+    if (sectionId === "plugins") return renderPlugins();
     return renderOverview();
   }
 
+  // Executive dashboard: summarizes risk, pipeline, usage, agents, and top findings.
   function renderOverview() {
     return (
       <div className={styles.overview}>
@@ -2206,6 +2530,7 @@ export default function GeniusDashboard() {
     );
   }
 
+  // AI Workspace: chat composer, evidence context rail, and live Gemini streaming responses.
   function renderChat() {
     const promptButtons = [
       { label: tr("renewalAudit"), prompt: "Audit all vendor renewals and find cancellation windows." },
@@ -2281,6 +2606,7 @@ export default function GeniusDashboard() {
             onChange={(event) => setChatInput(event.target.value)}
             onKeyDown={handleComposerKeyDown}
             placeholder={tr("composerPlaceholder")}
+            disabled={chatStreaming}
             rows={1}
           />
           <div className={styles.chatComposerActions}>
@@ -2295,7 +2621,7 @@ export default function GeniusDashboard() {
             >
               <span aria-hidden="true" />
             </button>
-            <button className={styles.sendButton} type="button" onClick={handleSendMessage} aria-label="Send message">
+            <button className={styles.sendButton} type="button" onClick={handleSendMessage} aria-label="Send message" disabled={chatStreaming}>
               ↑
             </button>
           </div>
@@ -2370,7 +2696,7 @@ export default function GeniusDashboard() {
             {messages.map((message, index) => (
               <article
                 className={classNames(styles.message, message.role === "user" && styles.userMessage)}
-                key={`${message.role}-${index}`}
+                key={message.id ?? `${message.role}-${index}`}
               >
                 <span>{message.role === "user" ? tr("you") : tr("geniusAnalyst")}</span>
                 <p>{message.text}</p>
@@ -2408,6 +2734,7 @@ export default function GeniusDashboard() {
     );
   }
 
+  // Data Room: upload evidence, review extracted fields, and save confirmed business data.
   function renderDataIntake() {
     return (
       <section className={styles.dataGridLayout}>
@@ -2481,24 +2808,28 @@ export default function GeniusDashboard() {
 
         <div className={styles.panel}>
           <p className={styles.kicker}>{tr("extractionReview")}</p>
-          <h2>{uploadedFiles[0] ? uploadedFiles[0].name : tr("noFileSelected")}</h2>
+          <h2>{activeEvidence ? activeEvidence.name : tr("noFileSelected")}</h2>
           <p className={styles.panelLead}>{tr("extractionReviewText")}</p>
           <div className={styles.fieldList}>
-            {Object.entries(
-              uploadedFiles[0]?.fields ?? {
-                vendor: tr("uploadFileFirst"),
-                renewal: tr("pending"),
-                notice: tr("pending"),
-                value: tr("pending"),
-              },
-            ).map(([field, value]) => (
+            {Object.entries(activeReviewFields).map(([field, value]) => (
               <label key={field}>
                 <span>{field}</span>
-                <input defaultValue={value} />
+                <input
+                  value={value}
+                  onChange={(event) => {
+                    if (activeEvidence) updateReviewField(activeEvidence.id, field, event.target.value);
+                  }}
+                  disabled={!activeEvidence}
+                />
               </label>
             ))}
           </div>
-          <button className={styles.primaryButtonWide} type="button">
+          <button
+            className={styles.primaryButtonWide}
+            type="button"
+            onClick={saveReviewedFields}
+            disabled={!activeEvidence || reviewSaveState.status === "saving"}
+          >
             {tr("saveReviewedFields")}
           </button>
         </div>
@@ -2506,6 +2837,7 @@ export default function GeniusDashboard() {
     );
   }
 
+  // Analytics: current operating health and data coverage indicators.
   function renderAnalytics() {
     return (
       <section className={styles.analyticsLayout}>
@@ -2554,6 +2886,7 @@ export default function GeniusDashboard() {
     );
   }
 
+  // Savings Radar: leak findings with impact, severity, evidence, and recommended action.
   function renderLeaks() {
     return (
       <section className={styles.panel}>
@@ -2567,17 +2900,35 @@ export default function GeniusDashboard() {
     );
   }
 
+  // Agent Control: supervised agent roles and guardrails for future backend workers.
   function renderAgents() {
     return (
       <section className={styles.agentGrid}>
-        {agentProfiles.map((agent) => (
+        <article className={styles.agentCard}>
+          <div className={styles.agentTop}>
+            <div>
+              <p className={styles.kicker}>Supervised execution</p>
+              <h2>Approval-first agent layer</h2>
+            </div>
+            {StatusBadge({ tone: "info", children: `${workspaceNotifications.length} notifications` })}
+          </div>
+          <p>Agents can prepare findings, drafts, and connector operations. External changes stay blocked until a user confirms the action in web, and later mobile push approvals.</p>
+          <div className={styles.guardrail}>
+            <span>Future execution</span>
+            <p>Database/CRM writes will require connector permissions, audit log entries, and explicit approval.</p>
+          </div>
+          <button className={styles.primaryButtonWide} type="button" onClick={runAgentRefresh}>
+            Refresh supervised agents
+          </button>
+        </article>
+        {agentItems.map((agent) => (
           <article className={styles.agentCard} key={agent.id}>
             <div className={styles.agentTop}>
               <div>
                 <p className={styles.kicker}>{fieldText(agent, "workload")}</p>
                 <h2>{fieldText(agent, "name")}</h2>
               </div>
-              {StatusBadge({ tone: statusTone(agentState[agent.id]), children: statusLabel(agentState[agent.id]) })}
+              {StatusBadge({ tone: statusTone(agent.status), children: statusLabel(agent.status) })}
             </div>
             <p>{fieldText(agent, "focus")}</p>
             <div className={styles.guardrail}>
@@ -2585,7 +2936,7 @@ export default function GeniusDashboard() {
               <p>{fieldText(agent, "guardrail")}</p>
             </div>
             <button className={styles.secondaryButtonWide} type="button" onClick={() => toggleAgent(agent.id)}>
-              {agentState[agent.id] === "Paused" ? tr("resumeAgent") : tr("pauseAgent")}
+              {agent.status === "Paused" ? tr("resumeAgent") : tr("pauseAgent")}
             </button>
           </article>
         ))}
@@ -2593,17 +2944,21 @@ export default function GeniusDashboard() {
     );
   }
 
+  // Approvals: human decision queue where AI-prepared actions are accepted or rejected.
   function renderApprovals() {
     return (
       <section className={styles.approvalGrid}>
-        {approvals.map((approval) => (
+        {approvalItems.map((approval) => {
+          const status = workspaceActions.length ? approval.status : approvalState[approval.id];
+          return (
           <article className={styles.approvalCard} key={approval.id}>
             <div>
               <p className={styles.kicker}>{fieldText(approval, "owner")}</p>
               <h2>{fieldText(approval, "title")}</h2>
               <p>{tr("estimatedImpact")}: {formatCurrency(approval.impact)}</p>
+              {approval.description && <p>{approval.description}</p>}
             </div>
-            {StatusBadge({ tone: statusTone(approvalState[approval.id]), children: statusLabel(approvalState[approval.id]) })}
+            {StatusBadge({ tone: statusTone(status), children: statusLabel(status) })}
             <div className={styles.actionRow}>
               <button className={styles.primaryButton} type="button" onClick={() => applyApproval(approval.id, "Approved")}>
                 {tr("approve")}
@@ -2614,13 +2969,18 @@ export default function GeniusDashboard() {
               <button className={styles.secondaryButton} type="button" onClick={() => applyApproval(approval.id, "Rejected")}>
                 {tr("reject")}
               </button>
+              <button className={styles.secondaryButton} type="button" onClick={() => applyApproval(approval.id, "Snoozed")}>
+                Snooze
+              </button>
             </div>
           </article>
-        ))}
+        );
+        })}
       </section>
     );
   }
 
+  // Reports: weekly and board-ready summaries; generation is a later backend milestone.
   function renderReports() {
     return (
       <section className={styles.reportGrid}>
@@ -2640,6 +3000,7 @@ export default function GeniusDashboard() {
     );
   }
 
+  // Plugins: placeholder module for integrations we will build after core backend stability.
   function renderPlugins() {
     const plugins = [
       { title: "Excel Analysis", category: "analytics", label: tr("pluginAnalytics"), detail: tr("pluginExcelDetail"), status: "Installed", tone: "success" },
@@ -2722,6 +3083,7 @@ export default function GeniusDashboard() {
     );
   }
 
+  // Shows the active AI provider clearly; locked modes stay visible but unavailable in MVP.
   function ModelSelector({ compact = false }) {
     return (
       <div className={classNames(styles.modelSelector, compact && styles.modelSelectorCompact)}>
@@ -2810,7 +3172,7 @@ export default function GeniusDashboard() {
           <span className={styles.countPill}>{openApprovalCount}</span>
         </PanelHeader>
         <div className={styles.queueList}>
-          {approvals.map((approval) => (
+          {approvalItems.map((approval) => (
             <article key={approval.id}>
               <div>
                 <h3>{fieldText(approval, "title")}</h3>
@@ -2833,9 +3195,9 @@ export default function GeniusDashboard() {
           <span className={styles.countPill}>{activeAgentCount}/{agentProfiles.length}</span>
         </PanelHeader>
         <div className={styles.agentPulse}>
-          {agentProfiles.map((agent) => (
+          {agentItems.map((agent) => (
             <article key={agent.id}>
-              <StatusDot tone={statusTone(agentState[agent.id])} />
+              <StatusDot tone={statusTone(agent.status)} />
               <div>
                 <h3>{fieldText(agent, "name")}</h3>
                 <p>{fieldText(agent, "focus")}</p>
@@ -3256,7 +3618,7 @@ export default function GeniusDashboard() {
         className={styles.hiddenInput}
         type="file"
         multiple
-        accept=".pdf,.csv,.txt,.xlsx,.xls,.doc,.docx"
+        accept=".pdf,.csv,.txt,.xlsx,.xls,.doc,.docx,.png,.jpg,.jpeg,.webp"
         onChange={(event) => handleFileInputChange(event, "Data Intake")}
       />
       <input
@@ -3264,7 +3626,7 @@ export default function GeniusDashboard() {
         className={styles.hiddenInput}
         type="file"
         multiple
-        accept=".pdf,.csv,.txt,.xlsx,.xls,.doc,.docx"
+        accept=".pdf,.csv,.txt,.xlsx,.xls,.doc,.docx,.png,.jpg,.jpeg,.webp"
         onChange={(event) => handleFileInputChange(event, "AI Workspace")}
       />
 
@@ -3280,7 +3642,6 @@ export default function GeniusDashboard() {
             className={styles.collapseButton}
             type="button"
             onClick={toggleSidebar}
-            onPointerDown={toggleSidebar}
             onKeyDown={(event) => {
               if (event.key !== "Enter" && event.key !== " ") return;
               toggleSidebar(event);
@@ -3451,7 +3812,7 @@ export default function GeniusDashboard() {
           </div>
         </header>
 
-        <div className={classNames(styles.activePane, paneMotionState === "switching" && styles.activePaneSwitching)}>
+        <div className={styles.activePane}>
           {renderActiveSection()}
         </div>
       </main>

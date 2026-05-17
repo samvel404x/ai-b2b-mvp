@@ -31,7 +31,7 @@
   --sidebar-width: 266px;
   --sidebar-collapsed: 76px;
   --fast: 220ms cubic-bezier(0.16, 1, 0.3, 1);
-  --smooth: 520ms cubic-bezier(0.16, 1, 0.3, 1);
+  --smooth: 180ms cubic-bezier(0.2, 0, 0, 1);
 
   min-height: 100vh;
   display: grid;
@@ -178,8 +178,14 @@
 .brandCluster {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 28px;
+  grid-template-rows: 42px;
   gap: 8px;
   align-items: center;
+  transition:
+    gap var(--smooth),
+    grid-template-columns var(--smooth),
+    grid-template-rows var(--smooth),
+    width var(--smooth);
 }
 
 .brandButton,
@@ -206,6 +212,7 @@
 
 .brandButton {
   min-width: 0;
+  width: 100%;
   height: 42px;
   display: flex;
   align-items: center;
@@ -218,7 +225,11 @@
   transition:
     background var(--fast),
     border-color var(--fast),
-    transform var(--fast);
+    border-radius var(--smooth),
+    height var(--smooth),
+    padding var(--smooth),
+    transform var(--fast),
+    width var(--smooth);
 }
 
 .brandButton:hover {
@@ -277,7 +288,9 @@
 }
 
 .brandText {
+  max-width: 150px;
   min-width: 0;
+  opacity: 1;
   overflow: hidden;
   background: linear-gradient(90deg, var(--text), var(--accent), var(--text));
   background-size: 200% 100%;
@@ -286,8 +299,15 @@
   font-size: 18px;
   font-weight: 780;
   text-overflow: ellipsis;
+  transform: translateX(0);
+  visibility: visible;
   white-space: nowrap;
   animation: brandGlow 6s ease-in-out infinite;
+  transition:
+    max-width var(--smooth),
+    opacity var(--smooth),
+    transform var(--smooth),
+    visibility var(--smooth);
 }
 
 .brandText span {
@@ -308,7 +328,10 @@
   transition:
     background var(--fast),
     border-color var(--fast),
+    border-radius var(--smooth),
     color var(--fast),
+    height var(--smooth),
+    width var(--smooth),
     transform var(--fast);
 }
 
@@ -330,6 +353,9 @@
 }
 
 .collapseButton span {
+  --chevron-left: calc(50% - 2.5px);
+  --chevron-origin: left center;
+
   width: 20px;
   height: 20px;
   position: relative;
@@ -340,17 +366,33 @@
   transition:
     background var(--fast),
     color var(--fast),
+    height var(--smooth),
+    width var(--smooth),
+    transform var(--fast);
+}
+
+.collapseButton span::before,
+.collapseButton span::after {
+  position: absolute;
+  top: 50%;
+  left: var(--chevron-left);
+  width: 8px;
+  height: 1.5px;
+  border-radius: 999px;
+  background: currentColor;
+  content: "";
+  transform-origin: var(--chevron-origin);
+  transition:
+    left var(--fast),
     transform var(--fast);
 }
 
 .collapseButton span::before {
-  width: 7px;
-  height: 7px;
-  border-top: 1.5px solid currentColor;
-  border-right: 1.5px solid currentColor;
-  content: "";
-  transform: rotate(-135deg);
-  transition: transform var(--fast);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.collapseButton span::after {
+  transform: translateY(-50%) rotate(-45deg);
 }
 
 .collapseButton:hover {
@@ -366,6 +408,7 @@
 }
 
 .workspaceCard {
+  max-height: 96px;
   display: grid;
   gap: 4px;
   padding: 12px;
@@ -374,6 +417,14 @@
   background:
     linear-gradient(135deg, var(--accent-soft), transparent 58%),
     var(--surface);
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    max-height var(--smooth),
+    padding var(--smooth),
+    border-color var(--smooth),
+    opacity var(--smooth),
+    transform var(--smooth);
 }
 
 .workspaceCard span {
@@ -395,6 +446,7 @@
 }
 
 .newThreadButton {
+  width: 100%;
   min-height: 42px;
   display: flex;
   align-items: center;
@@ -410,6 +462,11 @@
   transition:
     background var(--fast),
     border-color var(--fast),
+    border-radius var(--smooth),
+    gap var(--smooth),
+    min-height var(--smooth),
+    padding var(--smooth),
+    width var(--smooth),
     transform var(--fast);
 }
 
@@ -431,21 +488,40 @@
   color: var(--accent-ink);
   font-weight: 780;
   transition:
+    background var(--fast),
+    border-color var(--fast),
+    border-radius var(--smooth),
     box-shadow var(--fast),
+    color var(--fast),
+    height var(--smooth),
+    width var(--smooth),
     transform var(--fast);
 }
 
 .newThreadButton strong {
+  max-width: 160px;
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
   font-size: 13px;
   font-weight: 700;
+  transition:
+    max-width var(--smooth),
+    opacity var(--smooth),
+    transform var(--smooth),
+    visibility var(--smooth);
 }
 
 .sidebarActionGroup {
   display: grid;
   gap: 8px;
+  transition:
+    gap var(--smooth),
+    width var(--smooth);
 }
 
 .sidebarActionButton {
+  width: 100%;
   min-height: 36px;
   display: flex;
   align-items: center;
@@ -461,7 +537,12 @@
   transition:
     background var(--fast),
     border-color var(--fast),
+    border-radius var(--smooth),
     color var(--fast),
+    gap var(--smooth),
+    min-height var(--smooth),
+    padding var(--smooth),
+    width var(--smooth),
     transform var(--fast);
 }
 
@@ -483,17 +564,35 @@
   color: var(--accent);
   font-size: 10px;
   font-weight: 790;
+  transition:
+    background var(--fast),
+    border-color var(--fast),
+    border-radius var(--smooth),
+    color var(--fast),
+    font-size var(--smooth),
+    height var(--smooth),
+    width var(--smooth);
 }
 
 .sidebarActionButton strong {
+  max-width: 150px;
+  opacity: 1;
   overflow: hidden;
   font-size: 12px;
   font-weight: 690;
   text-overflow: ellipsis;
+  transform: translateX(0);
+  visibility: visible;
   white-space: nowrap;
+  transition:
+    max-width var(--smooth),
+    opacity var(--smooth),
+    transform var(--smooth),
+    visibility var(--smooth);
 }
 
 .recentThreads {
+  max-height: 210px;
   display: grid;
   gap: 3px;
   min-width: 0;
@@ -767,11 +866,18 @@
   min-height: 0;
   overflow-y: auto;
   padding-right: 2px;
+  transition:
+    gap var(--smooth),
+    padding var(--smooth);
 }
 
 .navGroup {
   display: grid;
   gap: 6px;
+  justify-items: stretch;
+  transition:
+    gap var(--smooth),
+    width var(--smooth);
 }
 
 .navGroupHeader {
@@ -790,9 +896,17 @@
   font-weight: 740;
   letter-spacing: 0;
   text-transform: uppercase;
+  transition:
+    color var(--fast),
+    max-width var(--smooth),
+    min-height var(--smooth),
+    opacity var(--smooth),
+    transform var(--smooth),
+    visibility var(--smooth);
 }
 
 .navGroupHeader i {
+  max-width: 18px;
   display: inline-flex;
   color: var(--muted);
   font-size: 16px;
@@ -800,8 +914,25 @@
   line-height: 1;
   transform: rotate(90deg);
   transition:
+    max-width var(--smooth),
+    opacity var(--smooth),
     transform var(--smooth),
+    visibility var(--smooth),
     color var(--fast);
+}
+
+.navGroupHeader span {
+  max-width: 160px;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  white-space: nowrap;
+  transition:
+    max-width var(--smooth),
+    opacity var(--smooth),
+    transform var(--smooth),
+    visibility var(--smooth);
 }
 
 .navGroupHeader:hover {
@@ -820,6 +951,7 @@
   opacity: 1;
   transform: translateY(0);
   transition:
+    gap var(--smooth),
     max-height var(--smooth),
     opacity var(--smooth),
     transform var(--smooth);
@@ -837,6 +969,7 @@
 
 .navItem {
   position: relative;
+  width: 100%;
   min-height: 39px;
   display: flex;
   align-items: center;
@@ -850,7 +983,12 @@
   transition:
     background var(--fast),
     border-color var(--fast),
+    border-radius var(--smooth),
     color var(--fast),
+    gap var(--smooth),
+    min-height var(--smooth),
+    padding var(--smooth),
+    width var(--smooth),
     transform var(--fast);
 }
 
@@ -874,15 +1012,33 @@
   color: var(--muted-2);
   font-size: 11px;
   font-weight: 760;
+  transition:
+    background var(--fast),
+    border-color var(--fast),
+    border-radius var(--smooth),
+    box-shadow var(--fast),
+    color var(--fast),
+    font-size var(--smooth),
+    height var(--smooth),
+    width var(--smooth);
 }
 
 .navItem strong {
+  max-width: 160px;
   min-width: 0;
+  opacity: 1;
   overflow: hidden;
   font-size: 13px;
   font-weight: 660;
   text-overflow: ellipsis;
+  transform: translateX(0);
+  visibility: visible;
   white-space: nowrap;
+  transition:
+    max-width var(--smooth),
+    opacity var(--smooth),
+    transform var(--smooth),
+    visibility var(--smooth);
 }
 
 .navItem:hover {
@@ -913,10 +1069,16 @@
   align-items: center;
   padding-top: 12px;
   border-top: 1px solid var(--line);
+  transition:
+    border-color var(--smooth),
+    gap var(--smooth),
+    grid-template-columns var(--smooth),
+    padding var(--smooth);
 }
 
 .accountButton {
   min-width: 0;
+  width: 100%;
   min-height: 42px;
   display: flex;
   align-items: center;
@@ -932,6 +1094,10 @@
   transition:
     background var(--fast),
     border-color var(--fast),
+    border-radius var(--smooth),
+    gap var(--smooth),
+    min-height var(--smooth),
+    padding var(--smooth),
     transform var(--fast);
 }
 
@@ -952,12 +1118,29 @@
   color: var(--accent);
   font-size: 12px;
   font-weight: 800;
+  transition:
+    background var(--fast),
+    border-color var(--fast),
+    border-radius var(--smooth),
+    box-shadow var(--fast),
+    color var(--fast),
+    height var(--smooth),
+    width var(--smooth);
 }
 
 .accountButton div {
+  max-width: 170px;
   min-width: 0;
   display: grid;
   gap: 2px;
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    max-width var(--smooth),
+    opacity var(--smooth),
+    transform var(--smooth),
+    visibility var(--smooth);
 }
 
 .accountButton strong,
@@ -990,7 +1173,10 @@
   transition:
     background var(--fast),
     border-color var(--fast),
+    border-radius var(--smooth),
     color var(--fast),
+    height var(--smooth),
+    width var(--smooth),
     transform var(--fast);
 }
 
@@ -1155,10 +1341,6 @@
 
 .activePane {
   transform-origin: top center;
-}
-
-.activePaneSwitching {
-  animation: paneSoftSwitch 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .overview {
@@ -3978,9 +4160,9 @@
 
 .shellCollapsed .brandCluster {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  grid-template-columns: 1fr;
+  grid-template-rows: 32px 32px;
+  justify-items: center;
   gap: 6px;
 }
 
@@ -4028,17 +4210,24 @@
 .shellCollapsed .collapseButton {
   align-self: center;
   width: 32px;
-  height: 28px;
+  height: 32px;
   color: var(--muted-2);
 }
 
 .shellCollapsed .collapseButton span {
-  width: 28px;
-  height: 24px;
+  --chevron-left: calc(50% - 5px);
+  --chevron-origin: right center;
+
+  width: 30px;
+  height: 30px;
 }
 
 .shellCollapsed .collapseButton span::before {
-  transform: rotate(45deg);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.shellCollapsed .collapseButton span::after {
+  transform: translateY(-50%) rotate(-45deg);
 }
 
 .shellCollapsed .collapseButton:hover span {
@@ -4294,20 +4483,6 @@
     opacity: 1;
     filter: blur(0);
     transform: translateY(0);
-  }
-}
-
-@keyframes paneSoftSwitch {
-  0% {
-    opacity: 0.86;
-    filter: blur(1px);
-    transform: translateY(5px) scale(0.998);
-  }
-
-  100% {
-    opacity: 1;
-    filter: blur(0);
-    transform: translateY(0) scale(1);
   }
 }
 
