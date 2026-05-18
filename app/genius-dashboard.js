@@ -2889,7 +2889,7 @@ export default function GeniusDashboard() {
   // Savings Radar: leak findings with impact, severity, evidence, and recommended action.
   function renderLeaks() {
     return (
-      <section className={styles.panel}>
+      <section className={classNames(styles.panel, styles.radarPanel)}>
         <PanelHeader label={tr("leaks")} title={tr("savingsRadarTitle")}>
           <button className={styles.primaryButton} type="button" onClick={() => navigate("approvals")}>
             {tr("prepareApprovals")}
