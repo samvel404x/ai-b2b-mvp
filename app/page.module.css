@@ -3453,6 +3453,48 @@
   line-height: 1.52;
 }
 
+.reportSummary {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reportSummary li {
+  padding-left: 12px;
+  border-left: 2px solid rgba(145, 107, 255, 0.48);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.reportMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.reportMetrics span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+  text-transform: capitalize;
+}
+
+.reportMetrics strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 760;
+}
+
 .guardrail {
   padding: 13px;
   border: 1px solid rgba(155, 92, 255, 0.24);

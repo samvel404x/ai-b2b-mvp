@@ -1348,6 +1348,13 @@ function formatCurrency(value) {
   return `$${value.toLocaleString("en-US")}`;
 }
 
+function formatMetricName(value) {
+  return String(value || "")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .toLowerCase();
+}
+
 function statusTone(status) {
   if (status === "Approved" || status === "Active" || status === "Ready") return "success";
   if (status === "Rejected" || status === "Paused") return "danger";
@@ -1453,6 +1460,7 @@ export default function GeniusDashboard() {
   const [workspaceActions, setWorkspaceActions] = useState([]);
   const [workspaceAgentRuns, setWorkspaceAgentRuns] = useState([]);
   const [workspaceNotifications, setWorkspaceNotifications] = useState([]);
+  const [workspaceReports, setWorkspaceReports] = useState([]);
   const [workspaceAuditLog, setWorkspaceAuditLog] = useState([]);
   const [workspaceConnectors, setWorkspaceConnectors] = useState([]);
   const [workspaceMetrics, setWorkspaceMetrics] = useState({});
@@ -1683,6 +1691,7 @@ export default function GeniusDashboard() {
       }),
     [agentState, workspaceAgentRuns],
   );
+  const reportItems = useMemo(() => (workspaceReports.length ? workspaceReports : reports), [workspaceReports]);
   const tr = (key) => getCopy(language, key);
   const fieldText = (item, field) => {
     const key = item?.[`${field}Key`];
@@ -1793,6 +1802,7 @@ export default function GeniusDashboard() {
     setWorkspaceActions(Array.isArray(workspace.actions) ? workspace.actions : []);
     setWorkspaceAgentRuns(Array.isArray(workspace.agentRuns) ? workspace.agentRuns : []);
     setWorkspaceNotifications(Array.isArray(workspace.notifications) ? workspace.notifications : []);
+    setWorkspaceReports(Array.isArray(workspace.reports) ? workspace.reports : []);
     setWorkspaceAuditLog(Array.isArray(workspace.auditLog) ? workspace.auditLog : []);
     setWorkspaceConnectors(Array.isArray(workspace.connectors) ? workspace.connectors : []);
     setWorkspaceMetrics(workspace.metrics && typeof workspace.metrics === "object" ? workspace.metrics : {});
@@ -2980,22 +2990,44 @@ export default function GeniusDashboard() {
     );
   }
 
-  // Reports: weekly and board-ready summaries; generation is a later backend milestone.
+  // Reports: board-ready summaries now come from backend state, with static seeds only as empty fallback.
   function renderReports() {
     return (
       <section className={styles.reportGrid}>
-        {reports.map((report) => (
-          <article className={styles.reportCard} key={report.title}>
-            <div>
-              <p className={styles.kicker}>{statusLabel(report.status)}</p>
-              <h2>{fieldText(report, "title")}</h2>
-              <p>{fieldText(report, "detail")}</p>
-            </div>
-            <button className={styles.secondaryButtonWide} type="button">
-              {tr("openReport")}
-            </button>
-          </article>
-        ))}
+        {reportItems.map((report) => {
+          const summary = Array.isArray(report.summary) ? report.summary.slice(0, 2) : [];
+          const metricEntries = Object.entries(report.metrics || {}).slice(0, 3);
+
+          return (
+            <article className={styles.reportCard} key={report.id || report.title}>
+              <div>
+                <p className={styles.kicker}>{statusLabel(report.status)}</p>
+                <h2>{fieldText(report, "title")}</h2>
+                <p>{fieldText(report, "detail")}</p>
+              </div>
+              {summary.length > 0 && (
+                <ul className={styles.reportSummary}>
+                  {summary.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
+              {metricEntries.length > 0 && (
+                <div className={styles.reportMetrics} aria-label="Report metrics">
+                  {metricEntries.map(([name, value]) => (
+                    <span key={name}>
+                      <strong>{typeof value === "number" ? value.toLocaleString("en-US") : String(value)}</strong>
+                      {formatMetricName(name)}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <button className={styles.secondaryButtonWide} type="button">
+                {tr("openReport")}
+              </button>
+            </article>
+          );
+        })}
       </section>
     );
   }

@@ -36,7 +36,9 @@ This keeps local development safe while we migrate the backend in steps.
 
 - `genius_workspaces`: one workspace row plus a JSON snapshot backup.
 - `genius_evidence_records`: uploaded files, URL evidence, extracted fields, and review state.
+- `genius_vendors`, `genius_contracts`, `genius_invoices`, `genius_spend_rows`: reviewed business entities derived from confirmed evidence.
 - `genius_action_states`: human decisions for AI-prepared actions.
+- `genius_reports`: backend-generated board reports built from reviewed evidence, findings, approvals, and audit history.
 - `genius_audit_log`: audit events for uploads, reviews, approvals, deletes, and agent refreshes.
 
 ## Migration Files
@@ -44,6 +46,7 @@ This keeps local development safe while we migrate the backend in steps.
 - `supabase/migrations/20260518075215_create_genius_mvp_backend_schema.sql`
 - `supabase/migrations/20260518075347_add_service_role_rls_policies.sql`
 - `supabase/migrations/20260518080547_add_reviewed_business_entity_tables.sql`
+- `supabase/migrations/20260519090000_add_backend_reports_table.sql`
 
 ## Security Rules
 
@@ -55,4 +58,4 @@ This keeps local development safe while we migrate the backend in steps.
 
 ## Next Backend Step
 
-After this layer is stable, split extracted data into first-class `vendors`, `contracts`, `invoices`, and `spend_rows` tables. That is when dashboards and reports become fully queryable instead of being mostly derived from evidence records.
+After this layer is stable, add user auth and tenant-scoped RLS so each customer can safely access only their own workspace. Then build Support/FAQ and connector permission screens on top of the same approval-first backend.
