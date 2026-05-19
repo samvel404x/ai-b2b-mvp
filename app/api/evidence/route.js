@@ -1,6 +1,7 @@
 import { analyzeEvidenceFile, EvidenceUploadError } from "../../../lib/server/evidence-analysis";
 import { clearEvidenceRecords, listEvidenceRecords, saveEvidenceRecords } from "../../../lib/server/evidence-store";
 import { getRequestWorkspaceContext } from "../../../lib/server/auth-session";
+import { deleteEvidenceFiles } from "../../../lib/server/supabase-file-store";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,8 @@ export async function GET(request) {
 
 // Uploads files, runs extraction, stores review records, and returns them to the UI.
 export async function POST(request) {
+  const analyzed = [];
+
   try {
     const context = getRequestWorkspaceContext(request);
     const formData = await request.formData();
@@ -37,9 +40,8 @@ export async function POST(request) {
       return jsonError("Attach at least one evidence file.", 400);
     }
 
-    const analyzed = [];
     for (const file of files) {
-      analyzed.push(await analyzeEvidenceFile(file, source));
+      analyzed.push(await analyzeEvidenceFile(file, source, { workspaceId: context.workspaceId }));
     }
 
     await saveEvidenceRecords(analyzed, { workspaceId: context.workspaceId });
@@ -49,6 +51,9 @@ export async function POST(request) {
       providerStatuses: analyzed.map((record) => record.providerStatus),
     });
   } catch (error) {
+    // If persistence fails after raw object upload, remove those private objects on a best-effort basis.
+    await deleteEvidenceFiles(analyzed);
+
     if (error instanceof EvidenceUploadError) {
       return jsonError(error.message, error.status);
     }

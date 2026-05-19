@@ -20,6 +20,7 @@ This is the first database-backed MVP cut. The app keeps the existing local JSON
 SUPABASE_URL=https://fdscrwloptchpozyotiv.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SUPABASE_AUTH_KEY=your-server-side-publishable-or-anon-key
+SUPABASE_EVIDENCE_BUCKET=evidence-files
 GENIUS_SESSION_SECRET=long-random-cookie-signing-secret
 GENIUS_WORKSPACE_ID=default
 ```
@@ -34,8 +35,18 @@ The service role key is available in Supabase Dashboard under project API settin
 - If `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` exist, `lib/server/evidence-store.js` uses Supabase.
 - If either value is missing, it uses `.data/genius-workspace.json`.
 - Signed-in users are routed to `workspace-<hash-of-user-id>`. Signed-out usage stays on `GENIUS_WORKSPACE_ID` or `default`.
+- Uploaded raw files are stored in the private Supabase Storage bucket from `SUPABASE_EVIDENCE_BUCKET` or `evidence-files`.
 
 This keeps local development safe while we migrate the backend in steps.
+
+## Evidence File Storage
+
+- `app/api/evidence` receives multipart uploads through the server.
+- `lib/server/evidence-analysis.js` validates file type and size, analyzes the file, then stores the raw file through `lib/server/supabase-file-store.js`.
+- Storage paths are scoped by workspace: `workspace-id/YYYY-MM-DD/evidence-id/file-name`.
+- Storage metadata is persisted in `genius_evidence_records.extracted.storage_file` so the current schema remains stable.
+- The bucket is private. Frontend never receives the service key and does not upload directly to Supabase in this cut.
+- Deleting or clearing evidence also attempts to remove the corresponding Storage objects.
 
 ## Auth Mode
 
