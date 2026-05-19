@@ -2,6 +2,7 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import { analyzeEvidenceTextSource } from "../../../../lib/server/evidence-analysis";
 import { saveEvidenceRecords } from "../../../../lib/server/evidence-store";
+import { getRequestWorkspaceContext } from "../../../../lib/server/auth-session";
 
 export const runtime = "nodejs";
 
@@ -62,6 +63,7 @@ function readableTextFromHtml(html) {
 // Fetches public URL evidence and stores it through the same review-first pipeline as uploads.
 export async function POST(request) {
   try {
+    const workspaceContext = getRequestWorkspaceContext(request);
     const body = await request.json();
     const url = await assertPublicHttpUrl(String(body.url || "").trim());
 
@@ -98,7 +100,7 @@ export async function POST(request) {
       url: url.toString(),
     });
 
-    await saveEvidenceRecords([record]);
+    await saveEvidenceRecords([record], { workspaceId: workspaceContext.workspaceId });
 
     return Response.json({ evidence: record });
   } catch (error) {

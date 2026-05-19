@@ -1,4 +1,5 @@
 import { deleteEvidenceRecord, updateEvidenceRecord } from "../../../../lib/server/evidence-store";
+import { getRequestWorkspaceContext } from "../../../../lib/server/auth-session";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,7 @@ function cleanReviewedFields(fields) {
 // Saves human-confirmed extraction fields and marks the record as safe to use downstream.
 export async function POST(request, context) {
   const { id } = await context.params;
+  const workspaceContext = getRequestWorkspaceContext(request);
   const body = await request.json().catch(() => ({}));
   const fields = cleanReviewedFields(body.fields);
 
@@ -23,11 +25,15 @@ export async function POST(request, context) {
     return Response.json({ error: "Reviewed fields are required." }, { status: 400 });
   }
 
-  const record = await updateEvidenceRecord(id, {
-    fields,
-    status: "Confirmed",
-    reviewedAt: new Date().toISOString(),
-  });
+  const record = await updateEvidenceRecord(
+    id,
+    {
+      fields,
+      status: "Confirmed",
+      reviewedAt: new Date().toISOString(),
+    },
+    { workspaceId: workspaceContext.workspaceId },
+  );
 
   if (!record) {
     return Response.json({ error: "Evidence record not found." }, { status: 404 });
@@ -39,7 +45,8 @@ export async function POST(request, context) {
 // Deletes one evidence record from the local MVP workspace.
 export async function DELETE(_request, context) {
   const { id } = await context.params;
-  const deleted = await deleteEvidenceRecord(id);
+  const workspaceContext = getRequestWorkspaceContext(_request);
+  const deleted = await deleteEvidenceRecord(id, { workspaceId: workspaceContext.workspaceId });
 
   if (!deleted) {
     return Response.json({ error: "Evidence record not found." }, { status: 404 });

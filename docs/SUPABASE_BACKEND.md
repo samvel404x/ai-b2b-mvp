@@ -19,18 +19,31 @@ This is the first database-backed MVP cut. The app keeps the existing local JSON
 ```bash
 SUPABASE_URL=https://fdscrwloptchpozyotiv.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_AUTH_KEY=your-server-side-publishable-or-anon-key
+GENIUS_SESSION_SECRET=long-random-cookie-signing-secret
 GENIUS_WORKSPACE_ID=default
 ```
 
 Do not prefix `SUPABASE_SERVICE_ROLE_KEY` with `NEXT_PUBLIC_`. It must stay server-only.
+`SUPABASE_AUTH_KEY` is optional in local MVP mode because the server can fall back to the service role for server-only Auth calls, but production should use a server-side publishable/anon key for password sign-in and keep the service role for admin-only calls.
+`GENIUS_SESSION_SECRET` signs the app cookie. If it is missing, the server falls back to the service role key for local development.
 The service role key is available in Supabase Dashboard under project API settings; the connector does not expose that secret.
 
 ## Storage Mode
 
 - If `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` exist, `lib/server/evidence-store.js` uses Supabase.
 - If either value is missing, it uses `.data/genius-workspace.json`.
+- Signed-in users are routed to `workspace-<hash-of-user-id>`. Signed-out usage stays on `GENIUS_WORKSPACE_ID` or `default`.
 
 This keeps local development safe while we migrate the backend in steps.
+
+## Auth Mode
+
+- `app/api/auth/email` performs email/password sign-in or signup through Supabase Auth from the server.
+- Supabase Auth access and refresh tokens are not sent to the browser in this cut.
+- The browser receives only public session metadata and an httpOnly signed `genius_session` cookie.
+- Google/OAuth is intentionally still disabled until the provider is configured in Supabase Auth settings.
+- This is a BFF-style MVP auth layer. Later we should move to full Supabase SSR Auth with refresh-token rotation and tenant RLS policies once publishable keys, redirect URLs, and production domain are finalized.
 
 ## Current Tables
 
@@ -52,10 +65,11 @@ This keeps local development safe while we migrate the backend in steps.
 
 - Frontend never calls Supabase directly in this cut.
 - Next.js API routes use the service role from server env only.
+- Auth routes set `Cache-Control: private, no-store` with signed httpOnly cookies.
 - RLS is enabled on every table.
 - `anon` and `authenticated` table grants are revoked for now.
 - Agents still cannot execute external changes without explicit approval.
 
 ## Next Backend Step
 
-After this layer is stable, add user auth and tenant-scoped RLS so each customer can safely access only their own workspace. Then build Support/FAQ and connector permission screens on top of the same approval-first backend.
+After this layer is stable, add tenant-scoped RLS policies and membership tables so direct Supabase access can be safely enabled later. Then build Support/FAQ and connector permission screens on top of the same approval-first backend.

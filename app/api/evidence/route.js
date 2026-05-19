@@ -1,5 +1,6 @@
 import { analyzeEvidenceFile, EvidenceUploadError } from "../../../lib/server/evidence-analysis";
 import { clearEvidenceRecords, listEvidenceRecords, saveEvidenceRecords } from "../../../lib/server/evidence-store";
+import { getRequestWorkspaceContext } from "../../../lib/server/auth-session";
 
 export const runtime = "nodejs";
 
@@ -18,14 +19,16 @@ function filesFromFormData(formData) {
 }
 
 // Hydrates the Data Room with locally saved MVP evidence.
-export async function GET() {
-  const evidence = await listEvidenceRecords();
+export async function GET(request) {
+  const context = getRequestWorkspaceContext(request);
+  const evidence = await listEvidenceRecords({ workspaceId: context.workspaceId });
   return Response.json({ evidence });
 }
 
 // Uploads files, runs extraction, stores review records, and returns them to the UI.
 export async function POST(request) {
   try {
+    const context = getRequestWorkspaceContext(request);
     const formData = await request.formData();
     const source = String(formData.get("source") || "Data Intake");
     const files = filesFromFormData(formData);
@@ -39,7 +42,7 @@ export async function POST(request) {
       analyzed.push(await analyzeEvidenceFile(file, source));
     }
 
-    await saveEvidenceRecords(analyzed);
+    await saveEvidenceRecords(analyzed, { workspaceId: context.workspaceId });
 
     return Response.json({
       evidence: analyzed,
@@ -55,7 +58,8 @@ export async function POST(request) {
 }
 
 // Clears all local evidence for the current single-user MVP workspace.
-export async function DELETE() {
-  await clearEvidenceRecords();
+export async function DELETE(request) {
+  const context = getRequestWorkspaceContext(request);
+  await clearEvidenceRecords({ workspaceId: context.workspaceId });
   return Response.json({ ok: true });
 }

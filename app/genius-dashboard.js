@@ -512,6 +512,7 @@ const copy = {
     provider: "Provider",
     connectGoogleEmailLater: "Connect Google or email to save workspace state later.",
     manageAccount: "Manage account",
+    signOut: "Sign out",
     signInRegister: "Sign in or register",
     authNoticeIdle: "Use Google or email to enter the workspace.",
     authNoticeInvalid: "Enter a valid business email address.",
@@ -1542,6 +1543,27 @@ export default function GeniusDashboard() {
   useEffect(() => {
     let cancelled = false;
 
+    // Auth is server-owned; the browser only receives public session metadata.
+    async function loadAuthSession() {
+      try {
+        const response = await fetch("/api/auth/session", { cache: "no-store" });
+        const data = await response.json().catch(() => ({}));
+        if (!cancelled && data.session) setSession(data.session);
+      } catch {
+        if (!cancelled) setSession(null);
+      }
+    }
+
+    loadAuthSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
     // Hydrates every working section from the backend workspace source of truth.
     async function loadSavedWorkspace() {
       try {
@@ -1720,7 +1742,9 @@ export default function GeniusDashboard() {
   const selectedModelConfig = modelOptions.find((model) => model.id === selectedModel) ?? modelOptions[0];
   const settingsLabel = (tabId) => tr(`settings${tabId.slice(0, 1).toUpperCase()}${tabId.slice(1)}`);
   const authStatusText =
-    authStatus.messageKey === "authNoticeSignedIn"
+    authStatus.message
+      ? authStatus.message
+      : authStatus.messageKey === "authNoticeSignedIn"
       ? `${tr("authNoticeSignedIn")} ${authStatus.email}.`
       : tr(authStatus.messageKey);
 
@@ -1792,6 +1816,7 @@ export default function GeniusDashboard() {
     const response = await fetch("/api/workspace", { cache: "no-store" });
     if (!response.ok) return null;
     const data = await response.json();
+    if (data.session) setSession(data.session);
     return data.workspace ?? null;
   }
 
@@ -2347,20 +2372,43 @@ export default function GeniusDashboard() {
     }
   }
 
-  function handleAuth(provider) {
-    const email = provider === "Google" ? "founder@gmail.com" : authEmail || "founder@company.com";
-    if (provider === "Email" && !email.includes("@")) {
+  async function handleAuth(provider) {
+    if (provider === "Google") {
+      setAuthStatus({ type: "error", messageKey: "realOauthPending", email: "" });
+      return;
+    }
+
+    const email = authEmail.trim().toLowerCase();
+    if (!email.includes("@") || authPassword.length < 8) {
       setAuthStatus({ type: "error", messageKey: "authNoticeInvalid", email: "" });
       return;
     }
 
     setAuthStatus({ type: "loading", messageKey: "authNoticeChecking", email: "" });
-    window.setTimeout(() => {
-      setSession({ provider, email, name: email.split("@")[0] });
+    try {
+      const response = await fetch("/api/auth/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: authMode, email, password: authPassword }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Authentication failed.");
+
+      if (payload.session) setSession(payload.session);
+      if (payload.workspace) applyWorkspaceState(payload.workspace);
       setAuthStatus({ type: "success", messageKey: "authNoticeSignedIn", email });
       setAuthOpen(false);
       setAuthPassword("");
-    }, 360);
+    } catch (error) {
+      setAuthStatus({ type: "error", message: error.message || "Authentication failed.", email: "" });
+    }
+  }
+
+  async function signOut() {
+    await fetch("/api/auth/session", { method: "DELETE" }).catch(() => null);
+    setSession(null);
+    setAuthStatus({ type: "idle", messageKey: "authNoticeIdle", email: "" });
+    await refreshWorkspaceState();
   }
 
   async function applyApproval(id, status) {
@@ -3353,7 +3401,7 @@ export default function GeniusDashboard() {
             <span>{authStatusText}</span>
           </div>
 
-          <button className={styles.googleButton} type="button" onClick={() => handleAuth("Google")}>
+          <button className={styles.googleButton} type="button" onClick={() => handleAuth("Google")} disabled={authStatus.type === "loading"}>
             {tr("continueGoogle")}
           </button>
 
@@ -3375,7 +3423,7 @@ export default function GeniusDashboard() {
             </label>
           </div>
 
-          <button className={styles.primaryButtonWide} type="button" onClick={() => handleAuth("Email")}>
+          <button className={styles.primaryButtonWide} type="button" onClick={() => handleAuth("Email")} disabled={authStatus.type === "loading"}>
             {authMode === "signin" ? tr("signInEmail") : tr("createAccount")}
           </button>
         </section>
@@ -3625,8 +3673,8 @@ export default function GeniusDashboard() {
                 <div className={styles.settingsCard}>
                   <strong>{session ? session.email : tr("notSignedIn")}</strong>
                   <p>{session ? `${tr("provider")}: ${session.provider}` : tr("connectGoogleEmailLater")}</p>
-                  <button className={styles.secondaryButtonWide} type="button" onClick={() => setAuthOpen(true)}>
-                    {session ? tr("manageAccount") : tr("signInRegister")}
+                  <button className={styles.secondaryButtonWide} type="button" onClick={session ? signOut : () => setAuthOpen(true)}>
+                    {session ? tr("signOut") : tr("signInRegister")}
                   </button>
                 </div>
               </div>
@@ -3806,7 +3854,18 @@ export default function GeniusDashboard() {
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <button className={styles.accountButton} type="button" onClick={() => setAuthOpen(true)}>
+          <button
+            className={styles.accountButton}
+            type="button"
+            onClick={() => {
+              if (!session) {
+                setAuthOpen(true);
+                return;
+              }
+              setSettingsTab("account");
+              setSettingsOpen(true);
+            }}
+          >
             <span>{session ? session.name.slice(0, 1).toUpperCase() : "U"}</span>
             <div>
               <strong>{session ? session.name : tr("signIn")}</strong>
