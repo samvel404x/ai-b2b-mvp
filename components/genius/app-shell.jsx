@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  Activity,
   ChevronDown,
   Cpu,
   Database,
@@ -98,8 +97,8 @@ export default function AppShell() {
       {/* Top bar: brand + system chips + account */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
         <div className="flex h-14 items-center gap-3 px-4">
-          <div className="flex items-center gap-2">
-            <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <div className="flex items-center gap-2.5">
+            <div className="glow-primary flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Sparkles className="size-4" />
             </div>
             <div className="flex flex-col leading-none">
@@ -108,6 +107,9 @@ export default function AppShell() {
                 {workspace.name}
               </span>
             </div>
+            <span className="ml-1 hidden rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary sm:inline">
+              Live
+            </span>
           </div>
 
           <div className="relative ml-2 hidden max-w-xs flex-1 items-center md:flex">
@@ -147,7 +149,10 @@ export default function AppShell() {
               onClick={() => setActive("approvals")}
               className="flex items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-xs font-medium text-warning transition-colors hover:bg-warning/15"
             >
-              <Activity className="size-3.5" />
+              <span className="relative flex size-1.5">
+                <span className="absolute inline-flex size-1.5 animate-ping rounded-full bg-warning opacity-70" />
+                <span className="relative inline-flex size-1.5 rounded-full bg-warning" />
+              </span>
               {workspace.openApprovals} approvals
             </button>
 
@@ -250,9 +255,9 @@ export default function AppShell() {
         </nav>
       </header>
 
-      <main className="flex-1 px-4 py-6">
-        <div className="mx-auto w-full max-w-[1400px]">
-          <ActiveSection key={active} label={activeLabel} onNavigate={setActive} />
+      <main className="flex-1 px-4 py-6 md:px-6 lg:px-8">
+        <div key={active} className="mx-auto w-full max-w-[1760px] animate-fade-in">
+          <ActiveSection label={activeLabel} onNavigate={setActive} />
         </div>
       </main>
     </div>
