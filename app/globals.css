@@ -217,6 +217,9 @@
     box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 22%, transparent),
       0 8px 40px -12px color-mix(in oklab, var(--primary) 40%, transparent);
   }
+  .glow-card {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
+  }
   .ring-grid {
     background-image:
       linear-gradient(to right, #ffffff08 1px, transparent 1px),
@@ -241,11 +244,52 @@
     scrollbar-color: var(--border) transparent;
   }
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: var(--border);
     border-radius: 9999px;
+  }
+  /* Premium table row hover */
+  .table-row-hover:hover {
+    background: rgba(255,255,255,0.025);
+  }
+  /* Stat card accent line */
+  .stat-accent-primary::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 9999px 9999px 0 0;
+    opacity: 0.7;
+  }
+  .stat-accent-critical::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--critical);
+    border-radius: 9999px 9999px 0 0;
+    opacity: 0.7;
+  }
+  .stat-accent-warning::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--warning);
+    border-radius: 9999px 9999px 0 0;
+    opacity: 0.7;
+  }
+  .stat-accent-evidence::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--evidence);
+    border-radius: 9999px 9999px 0 0;
+    opacity: 0.7;
   }
 }
