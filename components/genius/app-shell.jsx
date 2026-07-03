@@ -2,25 +2,37 @@
 
 import { useState } from "react";
 import {
+  AlertCircle,
+  Bell,
+  Bot,
   ChevronDown,
+  CircleDot,
   Cpu,
   Database,
+  FileSpreadsheet,
+  GitBranch,
+  HelpCircle,
+  Home,
+  LayoutDashboard,
+  Lock,
+  MessageSquare,
   Plug,
+  RefreshCw,
   Search,
+  Settings,
   ShieldCheck,
   Sparkles,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  Upload,
+  User,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { navSections, moreSections, workspace } from "@/lib/genius-data";
+import { workspace } from "@/lib/genius-data";
 import { StatusDot } from "./shared";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,7 +55,7 @@ import Connectors from "./sections/connectors";
 import Reports from "./sections/reports";
 import Profile from "./sections/profile";
 import Support from "./sections/support";
-import Settings from "./sections/settings";
+import SettingsSection from "./sections/settings";
 
 const sectionComponents = {
   command: CommandCenter,
@@ -58,208 +70,304 @@ const sectionComponents = {
   reports: Reports,
   profile: Profile,
   support: Support,
-  settings: Settings,
+  settings: SettingsSection,
 };
 
-function SystemChip({ icon: Icon, label, value, tone, valueClass }) {
+const mainNav = [
+  { id: "command", label: "Command Center", icon: LayoutDashboard },
+  { id: "chat", label: "AI Chat", icon: MessageSquare },
+  { id: "data", label: "Data Intake", icon: Upload },
+  { id: "diagnostics", label: "Diagnostics", icon: AlertCircle },
+  { id: "savings", label: "Savings Radar", icon: Target },
+  { id: "agents", label: "Agents", icon: Bot },
+  { id: "approvals", label: "Approvals", icon: ShieldCheck, badge: 8 },
+  { id: "excel", label: "Excel Workspace", icon: FileSpreadsheet },
+  { id: "connectors", label: "Connectors", icon: Plug },
+  { id: "reports", label: "Reports", icon: GitBranch },
+];
+
+const roadmapNav = [
+  { id: "crm", label: "CRM Layer", tag: "Demo" },
+  { id: "contracts", label: "Contract Repository", tag: "Demo" },
+  { id: "mobile", label: "Native Mobile App", tag: "Demo" },
+  { id: "multi", label: "Multi-Business OS", tag: "Demo" },
+  { id: "billing", label: "Billing", tag: null },
+  { id: "marketplace", label: "Marketplace Extensions", tag: "Demo" },
+  { id: "autonomous", label: "Autonomous Execution", tag: "Locked" },
+  { id: "deep", label: "Genius Deep", tag: "Locked" },
+  { id: "audit", label: "Genius Audit", tag: "Locked" },
+];
+
+const systemStatus = [
+  { label: "Data pipeline", status: "Healthy" },
+  { label: "AI extraction", status: "Healthy" },
+  { label: "Agent runtime", status: "Healthy" },
+  { label: "Approval service", status: "Healthy" },
+  { label: "Connectors", status: "Healthy" },
+];
+
+function NavItem({ item, active, onClick }) {
+  const Icon = item.icon;
+  const isActive = active === item.id;
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <div className="hidden items-center gap-2 rounded-md border border-border bg-secondary/60 px-2.5 py-1.5 lg:flex">
-            <Icon className="size-3.5 text-muted-foreground" />
-            <span className="flex items-center gap-1.5 text-xs">
-              <span className="text-muted-foreground">{label}</span>
-              <span className={cn("font-medium text-foreground", valueClass)}>
-                {value}
-              </span>
-            </span>
-            {tone ? <StatusDot tone={tone} /> : null}
-          </div>
-        }
-      />
-      <TooltipContent>
-        {label}: {value}
-      </TooltipContent>
-    </Tooltip>
+    <button
+      type="button"
+      onClick={() => onClick(item.id)}
+      className={cn(
+        "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium transition-all duration-150",
+        isActive
+          ? "bg-primary/12 text-primary"
+          : "text-[#8a9490] hover:bg-white/5 hover:text-[#c8d4cf]",
+      )}
+    >
+      {Icon && (
+        <Icon
+          className={cn(
+            "size-4 shrink-0 transition-colors",
+            isActive ? "text-primary" : "text-[#5a6660] group-hover:text-[#8a9490]",
+          )}
+        />
+      )}
+      <span className="flex-1 truncate">{item.label}</span>
+      {item.badge ? (
+        <span className="flex size-5 items-center justify-center rounded-full bg-warning text-[10px] font-bold text-warning-foreground">
+          {item.badge}
+        </span>
+      ) : null}
+      {isActive && (
+        <span className="size-1.5 rounded-full bg-primary" />
+      )}
+    </button>
+  );
+}
+
+function StatusBar() {
+  return (
+    <div className="flex items-center gap-3 overflow-x-auto border-b border-[#ffffff08] bg-[#030404] px-4 py-1.5">
+      {[
+        { icon: Cpu, label: "Provider", value: workspace.provider.name, dot: "online" },
+        { icon: Database, label: "Database", value: workspace.database.name, dot: "connected" },
+        { icon: Plug, label: "Connectors", value: `${workspace.connectors.active}/${workspace.connectors.total}`, dot: "healthy" },
+        { icon: ShieldCheck, label: "Data quality", value: `Good (${workspace.dataQuality}%)` },
+        { icon: RefreshCw, label: "Last sync", value: "2m ago" },
+      ].map(({ icon: Icon, label, value, dot }) => (
+        <div key={label} className="flex shrink-0 items-center gap-2 py-0.5">
+          {dot ? <StatusDot tone={dot} /> : <Icon className="size-3 text-[#4a5450]" />}
+          <span className="text-[11px] text-[#4a5450]">{label}</span>
+          <span className="text-[11px] font-medium text-[#8a9490]">{value}</span>
+        </div>
+      ))}
+      <div className="ml-auto flex items-center gap-1.5 shrink-0">
+        <span className="relative flex size-1.5">
+          <span className="absolute inline-flex size-1.5 animate-ping rounded-full bg-primary opacity-60" />
+          <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
+        </span>
+        <span className="text-[11px] text-primary font-medium">Auto-refresh</span>
+        <RefreshCw className="size-3 text-primary" />
+      </div>
+    </div>
   );
 }
 
 export default function AppShell() {
   const [active, setActive] = useState("command");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const ActiveSection = sectionComponents[active] || CommandCenter;
-  const activeLabel =
-    [...navSections, ...moreSections].find((s) => s.id === active)?.label || "";
-  const isMoreActive = moreSections.some((s) => s.id === active);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/* Top bar: brand + system chips + account */}
-      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-        <div className="flex h-14 items-center gap-3 px-4">
-          <div className="flex items-center gap-2.5">
-            <div className="glow-primary flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Sparkles className="size-4" />
+    <div className="flex h-screen flex-col overflow-hidden bg-[#050607]">
+      {/* Top header */}
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-[#ffffff08] bg-[#07080a] px-4">
+        {/* Brand */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="glow-primary flex size-7 items-center justify-center rounded-lg bg-primary">
+              <Sparkles className="size-3.5 text-[#03110a]" />
             </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-sm font-semibold tracking-tight">GENIUS</span>
-              <span className="text-[10px] text-muted-foreground">
-                {workspace.name}
-              </span>
-            </div>
-            <span className="ml-1 hidden rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary sm:inline">
-              Live
-            </span>
+            <span className="text-sm font-semibold tracking-tight text-foreground">GENIUS.</span>
           </div>
-
-          <div className="relative ml-2 hidden max-w-xs flex-1 items-center md:flex">
-            <Search className="absolute left-2.5 size-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search findings, evidence, vendors…"
-              className="h-8 border-border bg-secondary/50 pl-8 text-xs"
-            />
-          </div>
-
-          <div className="ml-auto flex items-center gap-2">
-            <SystemChip
-              icon={Cpu}
-              label="Provider"
-              value={workspace.provider.name}
-              tone={workspace.provider.status}
-            />
-            <SystemChip
-              icon={Database}
-              label="Database"
-              value={workspace.database.name}
-              tone={workspace.database.status}
-            />
-            <SystemChip
-              icon={Plug}
-              label="Connectors"
-              value={`${workspace.connectors.active}/${workspace.connectors.total}`}
-              tone={workspace.connectors.status}
-            />
-            <SystemChip
-              icon={ShieldCheck}
-              label="Data quality"
-              value={`${workspace.dataQuality}%`}
-            />
-            <button
-              type="button"
-              onClick={() => setActive("approvals")}
-              className="flex items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-xs font-medium text-warning transition-colors hover:bg-warning/15"
-            >
-              <span className="relative flex size-1.5">
-                <span className="absolute inline-flex size-1.5 animate-ping rounded-full bg-warning opacity-70" />
-                <span className="relative inline-flex size-1.5 rounded-full bg-warning" />
-              </span>
-              {workspace.openApprovals} approvals
-            </button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button variant="ghost" size="icon" className="size-8 rounded-full">
-                    <Avatar className="size-8">
-                      <AvatarFallback className="bg-secondary text-xs">
-                        NO
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                }
-              />
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuLabel>
-                  <div className="flex flex-col">
-                    <span className="text-sm">Nadia Okafor</span>
-                    <span className="text-xs font-normal text-muted-foreground">
-                      Head of Finance
-                    </span>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => setActive("profile")}>
-                    Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setActive("settings")}>
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setActive("support")}>
-                    Support
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-critical">
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <span className="hidden rounded-full border border-primary/20 bg-primary/8 px-2 py-0.5 text-[10px] font-medium text-primary sm:inline">
+            AI-BACKED OPS
+          </span>
         </div>
 
-        {/* Section navigation */}
-        <nav className="flex items-center gap-1 overflow-x-auto px-2">
-          {navSections.map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              onClick={() => setActive(section.id)}
-              className={cn(
-                "relative whitespace-nowrap px-3 py-2.5 text-sm font-medium transition-colors",
-                active === section.id
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {section.label}
-              {active === section.id ? (
-                <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-primary" />
-              ) : null}
-            </button>
-          ))}
+        {/* Center: workspace selector */}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button type="button" className="flex items-center gap-2 rounded-md border border-[#ffffff08] bg-[#0d0f0e] px-3 py-1.5 text-xs font-medium text-[#8a9490] transition-colors hover:border-[#1a1f1d] hover:text-foreground">
+                <span className="size-1.5 rounded-full bg-primary" />
+                {workspace.name}
+                <ChevronDown className="size-3" />
+              </button>
+            }
+          />
+          <DropdownMenuContent align="center" className="w-52">
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Workspace</DropdownMenuLabel>
+            <DropdownMenuItem className="text-sm font-medium">
+              <span className="size-1.5 rounded-full bg-primary mr-2" />
+              {workspace.name}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
+        {/* Right */}
+        <div className="flex items-center gap-2">
+          {/* Search */}
+          <div className="relative hidden md:flex items-center">
+            <Search className="absolute left-2.5 size-3 text-[#4a5450]" />
+            <input
+              placeholder="Search anything…"
+              className="h-7 w-48 rounded-md border border-[#ffffff08] bg-[#0d0f0e] pl-8 pr-3 text-xs text-[#8a9490] placeholder-[#3a4040] outline-none transition-all focus:border-[#1a2820] focus:w-56 focus:text-foreground"
+            />
+            <span className="absolute right-2.5 text-[10px] text-[#3a4040]">⌘K</span>
+          </div>
+
+          {/* Notifications */}
+          <button type="button" className="relative flex size-7 items-center justify-center rounded-md text-[#5a6660] transition-colors hover:bg-white/5 hover:text-foreground">
+            <Bell className="size-4" />
+            <span className="absolute right-1 top-1 flex size-3.5 items-center justify-center rounded-full bg-critical text-[8px] font-bold text-white">8</span>
+          </button>
+
+          <button type="button" className="flex size-7 items-center justify-center rounded-md text-[#5a6660] transition-colors hover:bg-white/5 hover:text-foreground" onClick={() => setActive("support")}>
+            <HelpCircle className="size-4" />
+          </button>
+
+          {/* User */}
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <button
-                  type="button"
-                  className={cn(
-                    "relative flex items-center gap-1 whitespace-nowrap px-3 py-2.5 text-sm font-medium transition-colors",
-                    isMoreActive
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  More
-                  <ChevronDown className="size-3.5" />
-                  {isMoreActive ? (
-                    <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-primary" />
-                  ) : null}
+                <button type="button" className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-[#8a9490] transition-colors hover:bg-white/5 hover:text-foreground">
+                  <Avatar className="size-6">
+                    <AvatarFallback className="bg-[#16211b] text-[10px] font-semibold text-primary">AR</AvatarFallback>
+                  </Avatar>
+                  <span className="hidden sm:inline">Alex Rivera</span>
+                  <ChevronDown className="size-3" />
                 </button>
               }
             />
-            <DropdownMenuContent align="start">
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuLabel>
+                <div className="flex flex-col">
+                  <span className="text-sm">Alex Rivera</span>
+                  <span className="text-xs font-normal text-muted-foreground">Owner</span>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                {moreSections.map((section) => (
-                  <DropdownMenuItem
-                    key={section.id}
-                    onClick={() => setActive(section.id)}
-                  >
-                    {section.label}
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuItem onClick={() => setActive("profile")}>Profile</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActive("settings")}>Settings</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActive("support")}>Support</DropdownMenuItem>
               </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-critical">Sign out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </nav>
+        </div>
       </header>
 
-      <main className="flex-1 px-4 py-6 md:px-6 lg:px-8">
-        <div key={active} className="mx-auto w-full max-w-[1760px] animate-fade-in">
-          <ActiveSection label={activeLabel} onNavigate={setActive} />
-        </div>
-      </main>
+      {/* Status bar */}
+      <StatusBar />
+
+      {/* Main layout: sidebar + content */}
+      <div className="flex min-h-0 flex-1">
+        {/* Sidebar */}
+        <aside className="flex w-[200px] shrink-0 flex-col overflow-hidden border-r border-[#ffffff08] bg-[#07080a]">
+          {/* Workspace label */}
+          <div className="px-4 pb-1 pt-3">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[#3a4040]">Workspace</span>
+          </div>
+
+          {/* Workspace pill */}
+          <div className="px-2 pb-2">
+            <button type="button" className="flex w-full items-center justify-between rounded-lg border border-[#ffffff06] bg-[#0d0f0e] px-3 py-2 text-xs font-medium text-[#8a9490] hover:border-[#1a1f1d] hover:text-foreground transition-colors">
+              <span className="truncate">{workspace.name}</span>
+              <ChevronDown className="size-3 shrink-0" />
+            </button>
+          </div>
+
+          {/* Main nav */}
+          <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 py-1">
+            <div className="flex flex-col gap-0.5">
+              {mainNav.map((item) => (
+                <NavItem key={item.id} item={item} active={active} onClick={setActive} />
+              ))}
+            </div>
+
+            {/* Roadmap section */}
+            <div className="mt-4">
+              <div className="px-3 pb-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-[#3a4040]">Roadmap & Future</span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {roadmapNav.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between rounded-lg px-3 py-1.5 text-sm text-[#4a5450]"
+                  >
+                    <span className="truncate text-xs">{item.label}</span>
+                    {item.tag && (
+                      <span className={cn(
+                        "shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
+                        item.tag === "Demo" && "bg-primary/10 text-primary",
+                        item.tag === "Locked" && "bg-[#1a1f1d] text-[#3a4040]",
+                      )}>
+                        {item.tag}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </nav>
+
+          {/* User profile */}
+          <div className="border-t border-[#ffffff08] p-2">
+            <button
+              type="button"
+              onClick={() => setActive("profile")}
+              className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-white/5"
+            >
+              <Avatar className="size-7 shrink-0">
+                <AvatarFallback className="bg-[#16211b] text-[10px] font-semibold text-primary">AR</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-medium text-[#c8d4cf]">Alex Rivera</p>
+                <p className="text-[10px] text-[#4a5450]">Owner</p>
+              </div>
+            </button>
+
+            {/* System status */}
+            <div className="mt-2 rounded-lg border border-[#ffffff06] bg-[#0d0f0e] px-3 py-2">
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#3a4040]">System status</p>
+              <div className="flex flex-col gap-1">
+                {systemStatus.map((s) => (
+                  <div key={s.label} className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-[10px] text-[#4a5450]">
+                      <span className="size-1.5 rounded-full bg-primary" />
+                      {s.label}
+                    </span>
+                    <span className="text-[10px] text-primary">{s.status}</span>
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={() => setActive("support")} className="mt-1.5 text-[10px] text-[#3a4040] hover:text-[#5a6660] transition-colors">
+                Need help? Visit Support / FAQ
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto scrollbar-thin bg-[#050607]">
+          <div
+            key={active}
+            className="mx-auto w-full max-w-[1600px] animate-fade-in p-5"
+          >
+            <ActiveSection label={mainNav.find(n => n.id === active)?.label || ""} onNavigate={setActive} />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
