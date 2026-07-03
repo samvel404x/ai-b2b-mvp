@@ -106,7 +106,7 @@ export default function Connectors({ label }) {
                       <span className={cn("text-xs font-medium", cfg.cls)}>{cfg.label}</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {c.category} · {c.events.toLocaleString()} events · synced {c.lastSync}
+                      {c.category} · {c.events.toLocaleString("en-US")} events · synced {c.lastSync}
                     </p>
                     <div className="mt-1.5 flex items-center gap-2">
                       <Progress

@@ -337,7 +337,7 @@ export default function ExcelWorkspace({ onNavigate }) {
                         <td className="px-3 py-2.5 max-w-[110px]">
                           <span className="block truncate text-evidence text-[10px] font-medium">{row.source}</span>
                         </td>
-                        <td className="px-3 py-2.5 tabular text-[#5a6660]">{row.row.toLocaleString()}</td>
+                        <td className="px-3 py-2.5 tabular text-[#5a6660]">{row.row.toLocaleString("en-US")}</td>
                         <td className="px-3 py-2.5 max-w-[160px]">
                           <span className="block truncate font-medium text-foreground">{row.description}</span>
                         </td>
@@ -371,7 +371,7 @@ export default function ExcelWorkspace({ onNavigate }) {
             {/* Pagination */}
             <div className="flex items-center justify-between border-t border-[#ffffff06] px-4 py-2.5">
               <span className="text-[11px] text-[#3a4040]">
-                Showing {(page - 1) * rowsPerPage + 1} to {Math.min(page * rowsPerPage, rows.length)} of {totalRows.toLocaleString()} rows
+                Showing {(page - 1) * rowsPerPage + 1} to {Math.min(page * rowsPerPage, rows.length)} of {totalRows.toLocaleString("en-US")} rows
               </span>
               <div className="flex items-center gap-1">
                 <button type="button" className="flex size-6 items-center justify-center rounded-md text-[#5a6660] transition-colors hover:bg-white/5 hover:text-foreground disabled:opacity-30" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>

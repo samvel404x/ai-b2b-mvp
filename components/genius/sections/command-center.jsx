@@ -92,7 +92,7 @@ function EvidenceGraph() {
                   <span className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: col.color }}>
                     {data.label}
                   </span>
-                  <span className="text-sm font-bold tabular text-foreground">{data.count.toLocaleString()}</span>
+                  <span className="text-sm font-bold tabular text-foreground">{data.count.toLocaleString("en-US")}</span>
                 </div>
                 {/* Node cards */}
                 <div className="flex flex-col gap-1.5 px-1">
