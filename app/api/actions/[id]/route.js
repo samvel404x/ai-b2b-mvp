@@ -16,7 +16,10 @@ export async function PATCH(request, context) {
     return Response.json({ error: "Unsupported action status." }, { status: 400 });
   }
 
-  const action = await updateActionStatus(id, status, workspaceContext.actor, { workspaceId: workspaceContext.workspaceId });
+  const action = await updateActionStatus(id, status, workspaceContext.actor, {
+    workspaceId: workspaceContext.workspaceId,
+    note: body.note,
+  });
 
   if (!action) {
     return Response.json({ error: "Action not found." }, { status: 404 });
