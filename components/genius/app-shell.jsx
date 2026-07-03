@@ -193,15 +193,11 @@ export default function AppShell() {
 
         {/* Center: workspace selector */}
         <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <button type="button" className="flex items-center gap-2 rounded-md border border-[#ffffff08] bg-[#0d0f0e] px-3 py-1.5 text-xs font-medium text-[#8a9490] transition-colors hover:border-[#1a1f1d] hover:text-foreground">
-                <span className="size-1.5 rounded-full bg-primary" />
-                {workspace.name}
-                <ChevronDown className="size-3" />
-              </button>
-            }
-          />
+          <DropdownMenuTrigger className="flex items-center gap-2 rounded-md border border-[#ffffff08] bg-[#0d0f0e] px-3 py-1.5 text-xs font-medium text-[#8a9490] transition-colors hover:border-[#1a1f1d] hover:text-foreground">
+            <span className="size-1.5 rounded-full bg-primary" />
+            {workspace.name}
+            <ChevronDown className="size-3" />
+          </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-52">
             <DropdownMenuLabel className="text-xs text-muted-foreground">Workspace</DropdownMenuLabel>
             <DropdownMenuItem className="text-sm font-medium">
@@ -235,17 +231,15 @@ export default function AppShell() {
 
           {/* User */}
           <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <button type="button" className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-[#8a9490] transition-colors hover:bg-white/5 hover:text-foreground">
-                  <Avatar className="size-6">
-                    <AvatarFallback className="bg-[#16211b] text-[10px] font-semibold text-primary">AR</AvatarFallback>
-                  </Avatar>
-                  <span className="hidden sm:inline">Alex Rivera</span>
-                  <ChevronDown className="size-3" />
-                </button>
-              }
-            />
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-[#8a9490] transition-colors hover:bg-white/5 hover:text-foreground">
+                <Avatar className="size-6">
+                  <AvatarFallback className="bg-[#16211b] text-[10px] font-semibold text-primary">AR</AvatarFallback>
+                </Avatar>
+                <span className="hidden sm:inline">Alex Rivera</span>
+                <ChevronDown className="size-3" />
+              </button>
+            </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuLabel>
                 <div className="flex flex-col">
