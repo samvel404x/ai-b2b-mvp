@@ -1,5 +1,5 @@
-import GeniusDashboard from "./genius-dashboard";
+import AppShell from "@/components/genius/app-shell";
 
 export default function Home() {
-  return <GeniusDashboard />;
+  return <AppShell />;
 }

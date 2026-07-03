@@ -1,26 +1,37 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+  variable: "--font-mono",
   subsets: ["latin"],
 });
 
 export const metadata = {
-  title: "GENIUS - AI Business Leak Analyst",
+  title: "GENIUS — Evidence-backed AI Operations Workspace",
   description:
-    "GENIUS finds business money leaks, proves them with evidence, and prepares actions for approval.",
+    "GENIUS finds where a business is losing money, proves it with source evidence, prepares the next action, and waits for human approval before anything is executed.",
+};
+
+export const viewport = {
+  themeColor: "#07080b",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+    <html
+      lang="en"
+      className={`dark ${geistSans.variable} ${geistMono.variable}`}
+    >
+      <body className="bg-background text-foreground antialiased">
+        {children}
+        <Toaster position="top-right" />
+      </body>
     </html>
   );
 }
