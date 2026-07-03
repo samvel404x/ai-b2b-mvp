@@ -231,14 +231,12 @@ export default function AppShell() {
 
           {/* User */}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-[#8a9490] transition-colors hover:bg-white/5 hover:text-foreground">
-                <Avatar className="size-6">
-                  <AvatarFallback className="bg-[#16211b] text-[10px] font-semibold text-primary">AR</AvatarFallback>
-                </Avatar>
-                <span className="hidden sm:inline">Alex Rivera</span>
-                <ChevronDown className="size-3" />
-              </button>
+            <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-[#8a9490] transition-colors hover:bg-white/5 hover:text-foreground">
+              <Avatar className="size-6">
+                <AvatarFallback className="bg-[#16211b] text-[10px] font-semibold text-primary">AR</AvatarFallback>
+              </Avatar>
+              <span className="hidden sm:inline">Alex Rivera</span>
+              <ChevronDown className="size-3" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuLabel>
