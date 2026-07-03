@@ -138,7 +138,8 @@ export function Sparkline({ data = [], stroke = "var(--primary)", className }) {
   const points = data.map((d, i) => [i * step, h - ((d - min) / span) * (h - 6) - 3]);
   const line = points.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
   const area = `${line} L${w},${h} L0,${h} Z`;
-  const id = `spark-${stroke.replace(/[^a-z0-9]/gi, "")}${Math.random().toString(36).slice(2, 6)}`;
+  // Deterministic id derived from data + stroke — no Math.random() to avoid SSR hydration mismatch
+  const id = `spark-${stroke.replace(/[^a-z0-9]/gi, "")}-${data.length}-${Math.round((data[0] ?? 0) * 100)}-${Math.round((data[data.length - 1] ?? 0) * 100)}`;
   return (
     <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className={cn("h-7 w-full", className)}>
       <defs>
@@ -153,7 +154,7 @@ export function Sparkline({ data = [], stroke = "var(--primary)", className }) {
   );
 }
 
-// ── Metric Card ──────────────────────────────────────────────────────────────
+// ── Metric Card ────────────────────────────────────────��─────────────────────
 const toneText = {
   primary: "text-primary", critical: "text-critical",
   evidence: "text-evidence", warning: "text-warning", neutral: "text-foreground",

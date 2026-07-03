@@ -208,7 +208,8 @@ function ApprovalPill({ state }) {
 
 // ── Trend Sparkline in-cell ────────────────────────────────────────────────────
 function TrendCell({ color = "var(--primary)" }) {
-  const vals = [3, 4, 3.5, 5, 4.5, 6, 5.5, 7, 6.5, 8].map(v => v + Math.random() * 1.5 - 0.75);
+  // Static jitter — no Math.random() to avoid SSR hydration mismatch
+  const vals = [3.2, 4.1, 3.8, 5.3, 4.7, 6.2, 5.4, 7.1, 6.8, 8.3];
   return <Sparkline data={vals} stroke={color} className="h-6 w-16" />;
 }
 
