@@ -515,7 +515,7 @@ function TimelineSection() {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Main component ───────────────────────────���────────────────────────────────
 const FILTER_LABELS = ["All Categories", "All Severity", "All Confidence", "All Owners", "All Approval States", "All Source Types"];
 const PAGES_TOTAL = 5;
 
@@ -545,22 +545,22 @@ export default function SavingsRadar({ onNavigate }) {
   const activeOpportunity = rows.find((r) => r.id === activeRow);
 
   return (
-    <div className="flex flex-col gap-5 animate-fade-in">
+    <div className="flex h-[calc(100vh-6.5rem)] flex-col gap-4 animate-fade-in">
       {/* Header */}
-      <div>
+      <div className="shrink-0">
         <h1 className="text-xl font-semibold text-foreground">Savings Radar</h1>
         <p className="text-sm text-[#5a6660]">Find hidden leaks and savings opportunities backed by evidence.</p>
       </div>
 
       {/* KPI Strip — 8 cards */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 xl:grid-cols-8">
+      <div className="grid shrink-0 grid-cols-2 gap-2.5 sm:grid-cols-4 xl:grid-cols-8">
         {savingsRadarKpis.map((kpi, i) => (
           <KpiCard key={kpi.id} kpi={kpi} index={i} />
         ))}
       </div>
 
       {/* Main content: table + detail panel */}
-      <div className={cn("grid gap-4", detailOpen ? "xl:grid-cols-[1fr_420px]" : "xl:grid-cols-1")}>
+      <div className={cn("grid min-h-0 flex-1 gap-4", detailOpen ? "xl:grid-cols-[1fr_420px]" : "xl:grid-cols-1")}>
         {/* Opportunities table */}
         <div className="flex flex-col overflow-hidden rounded-xl border border-[#ffffff08] bg-[#0a0c0b]">
           {/* Table header */}

@@ -603,7 +603,7 @@ export default function Reports({ label }) {
   const [selectedReport, setSelectedReport] = useState(reportsLibrary[0]);
 
   return (
-    <div className="flex flex-col gap-4 h-full">
+    <div className="flex h-[calc(100vh-6.5rem)] flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <PageHeader
           title="Reports / Board Reports"
@@ -643,14 +643,14 @@ export default function Reports({ label }) {
       </div>
 
       {/* KPI Strip */}
-      <div className="grid grid-cols-7 gap-2.5">
+      <div className="grid shrink-0 grid-cols-7 gap-2.5">
         {reportsKpis.map((kpi, i) => (
           <KpiCard key={kpi.id} kpi={kpi} index={i} />
         ))}
       </div>
 
       {/* 3-Column layout */}
-      <div className="grid grid-cols-[220px_1fr_240px] gap-3 min-h-0 flex-1" style={{ minHeight: "calc(100vh - 340px)" }}>
+      <div className="grid min-h-0 flex-1 grid-cols-[220px_1fr_240px] gap-3">
         {/* Left: Report Library */}
         <div className="flex flex-col gap-2 overflow-y-auto scrollbar-thin animate-fade-up pr-0.5">
           <div className="flex items-center justify-between px-0.5">

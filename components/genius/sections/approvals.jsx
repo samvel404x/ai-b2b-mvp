@@ -506,23 +506,23 @@ export default function Approvals() {
   const queueTabs = ["All 24", "Urgent 6", "Due Soon 7", "Mine 8", "By Agent", "By Impact"];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex h-[calc(100vh-6.5rem)] flex-col gap-4">
       <PageHeader
         title="Approvals"
         description="Human oversight for high-impact actions. You stay in control."
       />
 
       {/* ── KPI strip ── */}
-      <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 xl:grid-cols-9">
+      <div className="grid shrink-0 grid-cols-3 gap-2.5 sm:grid-cols-5 xl:grid-cols-9">
         {approvalsKpis.map((kpi, i) => (
           <KpiCard key={kpi.id} kpi={kpi} index={i} />
         ))}
       </div>
 
       {/* ── Main split: table + detail panel ── */}
-      <div className="grid gap-3 lg:grid-cols-[1fr_420px]">
-
-        {/* Left: Human decision queue */}
+  <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[1fr_420px]">
+  
+  {/* Left: Human decision queue */}
         <section className="flex flex-col overflow-hidden rounded-xl border border-[#ffffff08] bg-[#0a0c0b] animate-fade-up" style={{ animationDelay: "60ms" }}>
 
           {/* Queue header */}
