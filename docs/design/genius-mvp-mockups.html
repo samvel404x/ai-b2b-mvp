@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GENIUS MVP Mockups</title>
+  <style>
+    :root {
+      --bg: #020807;
+      --bg-2: #07110f;
+      --surface: #081310;
+      --surface-2: #0b1714;
+      --surface-3: #0f201b;
+      --line: rgba(126, 178, 161, 0.18);
+      --line-strong: rgba(52, 211, 111, 0.42);
+      --text: #eef7f2;
+      --text-soft: #c2d3cc;
+      --muted: #839991;
+      --muted-2: #5f746d;
+      --emerald: #34d36f;
+      --emerald-2: #1f9d50;
+      --emerald-soft: rgba(52, 211, 111, 0.13);
+      --blue: #3ba7ff;
+      --blue-soft: rgba(59, 167, 255, 0.12);
+      --amber: #f6a83a;
+      --amber-soft: rgba(246, 168, 58, 0.13);
+      --red: #ef4444;
+      --red-soft: rgba(239, 68, 68, 0.13);
+      --purple: #9b5cff;
+      --purple-soft: rgba(155, 92, 255, 0.12);
+      --radius: 8px;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.44);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 78% 0%, rgba(52, 211, 111, 0.09), transparent 24%),
+        linear-gradient(180deg, #010403, var(--bg) 48%);
+      color: var(--text);
+    }
+
+    .board {
+      display: grid;
+      gap: 28px;
+      padding: 28px;
+    }
+
+    .board.focus .brief,
+    .board.focus .screen:not(.focus-target) {
+      display: none;
+    }
+
+    .board.focus {
+      padding: 0;
+    }
+
+    .board.focus .screen.focus-target {
+      width: 100vw;
+      min-height: 100vh;
+      border: 0;
+      border-radius: 0;
+    }
+
+    .brief {
+      width: min(1680px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: end;
+      padding: 22px 24px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(52, 211, 111, 0.055), transparent 42%), rgba(2, 8, 7, 0.92);
+      box-shadow: var(--shadow);
+    }
+
+    .brief h1 { margin: 0; font-size: 30px; letter-spacing: -0.02em; }
+    .brief p { margin: 8px 0 0; max-width: 980px; color: var(--muted); line-height: 1.45; }
+    .palette { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .swatch {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--text-soft);
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.025);
+    }
+    .swatch i { width: 12px; height: 12px; border-radius: 50%; background: var(--c); }
+
+    .screen {
+      width: min(1680px, 100%);
+      min-height: 920px;
+      margin: 0 auto;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #010403;
+      box-shadow: var(--shadow);
+    }
+
+    .screen.auth-screen {
+      grid-template-columns: 0 minmax(0, 1fr);
+    }
+
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+      padding: 16px 14px;
+      border-right: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(52, 211, 111, 0.05), transparent 180px), #020807;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 42px;
+      font-size: 23px;
+      font-weight: 850;
+      letter-spacing: -0.03em;
+    }
+    .logo {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 2px solid var(--emerald);
+      border-radius: 9px;
+      color: var(--emerald);
+      font-weight: 900;
+      box-shadow: 0 0 24px rgba(52, 211, 111, 0.18);
+    }
+
+    .workspace, .user-card, .status-card, .future {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(7, 17, 15, 0.88);
+    }
+    .label {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .workspace strong, .user-card strong { display: block; margin-top: 6px; font-size: 13px; }
+    .workspace em, .user-card em { color: var(--muted); font-size: 11px; font-style: normal; }
+
+    .nav { display: grid; gap: 4px; }
+    .nav button {
+      height: 35px;
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--text-soft);
+      font: inherit;
+      font-size: 13px;
+      text-align: left;
+    }
+    .nav button.active {
+      border-color: rgba(52, 211, 111, 0.36);
+      background: rgba(52, 211, 111, 0.15);
+      color: var(--text);
+      box-shadow: inset 3px 0 0 var(--emerald);
+    }
+    .nav i {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      background: rgba(52, 211, 111, 0.08);
+      color: var(--emerald);
+      font-size: 10px;
+      font-style: normal;
+      font-weight: 800;
+    }
+    .badge {
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--red);
+      color: white;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .future { display: grid; gap: 8px; }
+    .future-row { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 11px; }
+    .future-row em {
+      padding: 2px 6px;
+      border: 1px solid rgba(59, 167, 255, 0.3);
+      border-radius: 6px;
+      color: var(--blue);
+      font-style: normal;
+      font-size: 10px;
+    }
+    .future-row em.locked { border-color: rgba(255,255,255,.16); color: var(--muted); }
+
+    .main {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      background:
+        linear-gradient(90deg, rgba(52, 211, 111, 0.035), transparent 38%),
+        #020807;
+    }
+    .topbar {
+      min-height: 66px;
+      display: grid;
+      grid-template-columns: minmax(250px, 1fr) auto auto;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .title h2 { margin: 0; font-size: 20px; letter-spacing: -0.02em; }
+    .title p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .statusbar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(7, 17, 15, 0.78);
+    }
+    .statusbar span {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      border-right: 1px solid var(--line);
+      color: var(--text-soft);
+      font-size: 11px;
+    }
+    .statusbar span:last-child { border-right: 0; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--emerald); box-shadow: 0 0 12px rgba(52,211,111,.45); }
+    .dot.warn { background: var(--amber); box-shadow: none; }
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .avatar { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: #141a1a; font-weight: 800; }
+
+    .content { min-width: 0; display: grid; gap: 10px; padding: 14px; }
+    .kpis { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+    .kpis.six { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .kpis.eight { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    .metric {
+      min-height: 88px;
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.028), transparent), rgba(8, 19, 16, .88);
+    }
+    .ring {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at center, #081310 0 55%, transparent 56%),
+        conic-gradient(var(--tone, var(--emerald)) var(--pct, 72%), rgba(255,255,255,.09) 0);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 850;
+    }
+    .metric span { color: var(--muted); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+    .metric strong { display: block; margin-top: 3px; font-size: 19px; line-height: 1; }
+    .metric em { display: block; margin-top: 4px; color: var(--emerald); font-size: 11px; font-style: normal; }
+    .metric.danger { --tone: var(--red); }
+    .metric.warn { --tone: var(--amber); }
+    .metric.info { --tone: var(--blue); }
+    .metric.purple { --tone: var(--purple); }
+
+    .grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 10px; align-items: start; }
+    .grid-3 { display: grid; grid-template-columns: 300px minmax(0, 1fr) 320px; gap: 10px; align-items: start; }
+    .grid-3-wide { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.3fr) 330px; gap: 10px; align-items: start; }
+    .panel {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.025), transparent 220px), rgba(7,17,15,.92);
+    }
+    .panel.pad { padding: 12px; }
+    .panel-head {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .panel-head h3 { margin: 0; font-size: 15px; }
+    .panel-head a, .link { color: var(--blue); font-size: 12px; text-decoration: none; }
+    .tabs { display: flex; gap: 18px; padding: 0 12px; border-bottom: 1px solid var(--line); }
+    .tabs span { padding: 11px 0; color: var(--muted); font-size: 12px; }
+    .tabs span.active { color: var(--blue); box-shadow: inset 0 -2px 0 var(--blue); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+    .input, .select, .btn {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: rgba(1, 4, 3, .42);
+      color: var(--text-soft);
+      font: inherit;
+      font-size: 12px;
+    }
+    .input { flex: 1; min-width: 180px; padding: 0 10px; }
+    .select, .btn { padding: 0 11px; }
+    .btn.primary { border-color: rgba(52,211,111,.45); background: linear-gradient(180deg, #39d873, #218e49); color: #fff; font-weight: 760; }
+    .btn.blue { border-color: rgba(59,167,255,.35); background: var(--blue-soft); color: var(--blue); }
+    .btn.red { border-color: rgba(239,68,68,.42); background: var(--red-soft); color: #ffb3b3; }
+    .btn.ghost { background: transparent; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 22px;
+      width: fit-content;
+      padding: 0 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .pill.high { border-color: rgba(239,68,68,.45); background: var(--red-soft); color: #ff8f8f; }
+    .pill.medium { border-color: rgba(246,168,58,.45); background: var(--amber-soft); color: var(--amber); }
+    .pill.low { border-color: rgba(52,211,111,.35); background: var(--emerald-soft); color: var(--emerald); }
+    .pill.blue { border-color: rgba(59,167,255,.38); background: var(--blue-soft); color: var(--blue); }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 9px 10px; border-bottom: 1px solid rgba(126,178,161,.11); text-align: left; font-size: 12px; vertical-align: middle; }
+    th { color: var(--muted-2); font-size: 10px; font-weight: 850; text-transform: uppercase; background: rgba(255,255,255,.018); }
+    td { color: var(--text-soft); }
+    td strong { color: var(--text); }
+    .selected-row { outline: 1px solid var(--blue); outline-offset: -1px; background: rgba(59,167,255,.07); }
+    .bar { height: 6px; min-width: 70px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.08); }
+    .bar i { display: block; width: var(--w); height: 100%; border-radius: inherit; background: var(--tone, var(--emerald)); }
+
+    .footer {
+      min-height: 38px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 0 14px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .footer span { display: flex; align-items: center; gap: 7px; }
+
+    .graph {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      padding: 12px;
+      background-image:
+        linear-gradient(rgba(52, 211, 111, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(52, 211, 111, .035) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    .graph-col h4 { margin: 0 0 9px; color: var(--muted); font-size: 10px; text-transform: uppercase; }
+    .node {
+      position: relative;
+      display: grid;
+      gap: 4px;
+      min-height: 58px;
+      margin-bottom: 8px;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: rgba(7,17,15,.86);
+      font-size: 11px;
+    }
+    .node strong { font-size: 12px; }
+    .node em { color: var(--muted); font-style: normal; }
+    .node.blue { border-color: rgba(59,167,255,.48); background: var(--blue-soft); }
+    .node.green { border-color: rgba(52,211,111,.45); background: var(--emerald-soft); }
+    .node.red { border-color: rgba(239,68,68,.45); background: var(--red-soft); }
+    .node.amber { border-color: rgba(246,168,58,.45); background: var(--amber-soft); }
+    .node.purple { border-color: rgba(155,92,255,.4); background: var(--purple-soft); }
+    .node .score { position: absolute; right: 7px; top: 7px; color: var(--emerald); font-weight: 850; }
+
+    .queue { display: grid; gap: 9px; padding: 12px; }
+    .queue-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(8, 19, 16, .82);
+    }
+    .queue-item strong { display: block; font-size: 13px; }
+    .queue-item p { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+    .queue-actions { display: grid; gap: 5px; }
+
+    .inspector-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; padding: 12px; }
+    .mini-card { padding: 10px; border: 1px solid var(--line); border-radius: 7px; background: rgba(1,4,3,.35); }
+    .mini-card span { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; }
+    .mini-card strong { display: block; margin-top: 5px; font-size: 18px; }
+    .rail-list { display: grid; gap: 8px; padding: 12px; }
+    .rail-list article { display: grid; gap: 3px; padding: 10px; border: 1px solid var(--line); border-radius: 7px; background: rgba(1,4,3,.32); }
+    .rail-list strong { font-size: 12px; }
+    .rail-list em { color: var(--muted); font-size: 11px; font-style: normal; }
+
+    .chat-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr) 300px; gap: 10px; }
+    .chat-list { display: grid; gap: 7px; padding: 12px; }
+    .chat-list div { padding: 9px; border: 1px solid var(--line); border-radius: 7px; color: var(--text-soft); font-size: 12px; background: rgba(1,4,3,.28); }
+    .chat-list div.active { border-color: rgba(52,211,111,.5); background: rgba(52,211,111,.12); color: var(--text); }
+    .message-area { display: grid; gap: 12px; padding: 12px; }
+    .bubble { width: fit-content; max-width: 70%; padding: 11px 13px; border: 1px solid var(--line); border-radius: 11px; background: rgba(255,255,255,.035); font-size: 13px; }
+    .answer { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: rgba(8,19,16,.8); }
+    .composer { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 12px; border-top: 1px solid var(--line); }
+
+    .upload-box {
+      min-height: 230px;
+      display: grid;
+      place-items: center;
+      gap: 8px;
+      padding: 22px;
+      border: 1px dashed rgba(52,211,111,.45);
+      border-radius: var(--radius);
+      background: rgba(52,211,111,.055);
+      text-align: center;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+    .chip { padding: 5px 9px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); font-size: 11px; }
+
+    .auth-layout {
+      min-height: 920px;
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(640px, 1.1fr);
+      gap: 32px;
+      padding: 42px;
+      background:
+        radial-gradient(circle at 76% 0%, rgba(52,211,111,.09), transparent 28%),
+        #020807;
+    }
+    .auth-copy { display: grid; align-content: start; gap: 28px; padding-top: 4px; }
+    .auth-copy h1 { margin: 12px 0 0; max-width: 680px; font-size: 48px; line-height: 1.08; letter-spacing: -0.04em; }
+    .auth-copy h1 span { color: var(--emerald); }
+    .auth-copy p { max-width: 700px; color: var(--text-soft); font-size: 17px; line-height: 1.55; }
+    .auth-flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+    .flow-step { display: grid; gap: 8px; justify-items: center; text-align: center; color: var(--muted); font-size: 11px; }
+    .flow-step i { width: 54px; height: 54px; display: grid; place-items: center; border: 1px solid var(--line-strong); border-radius: var(--radius); color: var(--emerald); font-style: normal; font-weight: 900; }
+    .auth-panel { border: 1px solid var(--line); border-radius: 12px; background: rgba(8,19,16,.9); box-shadow: var(--shadow); }
+    .auth-tabs { display: flex; gap: 24px; padding: 18px 26px 0; border-bottom: 1px solid var(--line); }
+    .auth-tabs span { padding-bottom: 14px; color: var(--muted); }
+    .auth-tabs .active { color: var(--text); box-shadow: inset 0 -2px 0 var(--emerald); }
+    .auth-body { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; padding: 28px; }
+    .form { display: grid; gap: 12px; }
+    .form input, .form select { width: 100%; height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: 7px; background: rgba(1,4,3,.35); color: var(--text); }
+    .security-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+    .settings-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr) 370px; gap: 10px; }
+    .settings-menu { padding: 12px; }
+    .settings-menu div { padding: 10px; border-radius: 7px; color: var(--text-soft); font-size: 13px; }
+    .settings-menu .active { background: rgba(52,211,111,.14); color: var(--text); box-shadow: inset 3px 0 0 var(--emerald); }
+    .toggle-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 11px; border-bottom: 1px solid var(--line); }
+    .toggle { width: 34px; height: 18px; border-radius: 999px; background: var(--emerald); position: relative; }
+    .toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: white; }
+  </style>
+</head>
+<body>
+  <main class="board">
+    <section class="brief">
+      <div>
+        <h1>GENIUS MVP Mockups - Evidence Graph Product Shell</h1>
+        <p>Canonical design reference for implementation. Color is locked to the Approvals mockup: dark graphite surfaces, emerald primary actions, proof blue links, amber warnings, red critical risk. Future modules are visible as Demo/Locked, not fake working integrations.</p>
+      </div>
+      <div class="palette">
+        <span class="swatch"><i style="--c:#020807"></i>bg</span>
+        <span class="swatch"><i style="--c:#081310"></i>surface</span>
+        <span class="swatch"><i style="--c:#34d36f"></i>emerald</span>
+        <span class="swatch"><i style="--c:#3ba7ff"></i>proof</span>
+        <span class="swatch"><i style="--c:#f6a83a"></i>warning</span>
+        <span class="swatch"><i style="--c:#ef4444"></i>critical</span>
+      </div>
+    </section>
+
+    <section class="screen auth-screen" id="auth">
+      <div></div>
+      <div class="auth-layout">
+        <div class="auth-copy">
+          <div class="brand"><span class="logo">G</span> GENIUS.</div>
+          <div>
+            <h1>Evidence-backed <span>AI</span> operations workspace</h1>
+            <p>Turn messy business data into trusted insights, supervised actions, and board-ready reports. Approval-first by default.</p>
+          </div>
+          <div class="auth-flow">
+            <div class="flow-step"><i>EV</i><strong>Evidence</strong><span>Files, URLs, connectors</span></div>
+            <div class="flow-step"><i>FX</i><strong>Facts</strong><span>Extracted fields</span></div>
+            <div class="flow-step"><i>RK</i><strong>Risks</strong><span>Anomalies</span></div>
+            <div class="flow-step"><i>AG</i><strong>Agents</strong><span>Draft actions</span></div>
+            <div class="flow-step"><i>AP</i><strong>Approvals</strong><span>Human control</span></div>
+            <div class="flow-step"><i>RP</i><strong>Reports</strong><span>Board proof</span></div>
+          </div>
+          <div class="security-strip">
+            <div class="mini-card"><strong>Your data stays yours</strong><br><span class="label">Supabase + RLS</span></div>
+            <div class="mini-card"><strong>Approval-first</strong><br><span class="label">No external actions</span></div>
+            <div class="mini-card"><strong>Evidence everywhere</strong><br><span class="label">Every metric links to proof</span></div>
+            <div class="mini-card"><strong>Export anytime</strong><br><span class="label">Reports and data</span></div>
+          </div>
+        </div>
+        <div class="auth-panel">
+          <div class="auth-tabs"><span class="active">Sign in</span><span>Create account</span></div>
+          <div class="auth-body">
+            <div class="form">
+              <h2>Sign in to your workspace</h2>
+              <button class="btn">Continue with Google</button>
+              <button class="btn">Continue with Microsoft</button>
+              <button class="btn primary">Email magic link</button>
+              <label>Email address<input value="alex@acme.com"></label>
+              <label>Password<input value="••••••••••" type="password"></label>
+              <button class="btn primary">Sign in</button>
+              <button class="btn ghost">Enterprise SSO (SAML) <span class="pill">Soon</span></button>
+            </div>
+            <div class="form">
+              <h2>New here? Create your workspace</h2>
+              <label>Workspace name<input value="Acme Corporation Operations"></label>
+              <label>Your role<select><option>Operations Manager</option></select></label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <label>Company size<select><option>51 - 200 employees</option></select></label>
+                <label>Business type<select><option>Professional Services</option></select></label>
+              </div>
+              <div class="mini-card"><strong>Workspace data is stored securely on Supabase.</strong><br><span class="label">Invite teammates after setup</span></div>
+              <button class="btn primary">Continue →</button>
+            </div>
+          </div>
+          <div class="rail-list" style="grid-template-columns:repeat(4,1fr);">
+            <article><strong>Gemini 1.5 Pro</strong><em>Ready</em></article>
+            <article><strong>Supabase</strong><em>Connected</em></article>
+            <article><strong>OCR Engine</strong><em>Ready</em></article>
+            <article><strong>Local Parser</strong><em>Ready</em></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="command">
+      <aside class="side" data-active="Command Center"></aside>
+      <div class="main">
+        <div class="topbar"><div class="title"><h2>Command Center</h2><p>Evidence-backed operations. Real-time insights. Approval-first execution.</p></div><div class="statusbar"><span><i class="dot"></i>AI Provider Gemini 1.5 Pro</span><span><i class="dot"></i>Database Supabase</span><span><i class="dot"></i>Data quality Good 84%</span><span>Last sync 2m ago</span></div><div class="avatar">AR</div></div>
+        <div class="content">
+          <div class="kpis">
+            <div class="metric"><div class="ring" style="--pct:72%">72</div><div><span>Business health</span><strong>72</strong><em>Moderate risk</em></div></div>
+            <div class="metric danger"><div class="ring" style="--pct:78%">!</div><div><span>Money at risk</span><strong>$287,430</strong><em style="color:var(--red)">+18.6% vs 7d</em></div></div>
+            <div class="metric"><div class="ring" style="--pct:76%">$</div><div><span>Savings potential</span><strong>$147,320</strong><em>24 opportunities</em></div></div>
+            <div class="metric info"><div class="ring" style="--pct:84%">84</div><div><span>Evidence coverage</span><strong>84%</strong><em>Good</em></div></div>
+            <div class="metric"><div class="ring" style="--pct:87%">87</div><div><span>AI confidence</span><strong>87%</strong><em>High</em></div></div>
+            <div class="metric warn"><div class="ring" style="--pct:62%">8</div><div><span>Approval queue</span><strong>8</strong><em style="color:var(--amber)">3 urgent</em></div></div>
+            <div class="metric"><div class="ring" style="--pct:96%">96</div><div><span>Report readiness</span><strong>96%</strong><em>12 ready</em></div></div>
+          </div>
+          <div class="grid-2">
+            <div>
+              <section class="panel">
+                <div class="panel-head"><h3>Evidence Graph <span class="pill low">Live</span></h3><a>View full graph</a></div>
+                <div class="graph">
+                  <div class="graph-col"><h4>Source Evidence<br>95</h4><div class="node blue"><strong>Microsoft_EA_Renewal.pdf</strong><em>Contract • May 23</em><span class="score">94</span></div><div class="node green"><strong>AP_Invoices_May.xlsx</strong><em>Excel • May 24</em><span class="score">85</span></div></div>
+                  <div class="graph-col"><h4>Extracted Facts<br>2,841</h4><div class="node green"><strong>EA renewal</strong><em>Term: 12 months</em><span class="score">95</span></div><div class="node green"><strong>Payment terms</strong><em>Net 30</em><span class="score">96</span></div></div>
+                  <div class="graph-col"><h4>Diagnostic Risks<br>34</h4><div class="node red"><strong>Renewal above market</strong><em>High • $245K</em><span class="score">94</span></div><div class="node red"><strong>Unused licenses</strong><em>Medium • $120K</em><span class="score">88</span></div></div>
+                  <div class="graph-col"><h4>Agent Actions<br>87</h4><div class="node purple"><strong>Contract Analyst</strong><em>Review benchmark</em><span class="score">92</span></div><div class="node purple"><strong>Spend Auditor</strong><em>Reclaim seats</em><span class="score">88</span></div></div>
+                  <div class="graph-col"><h4>Human Approvals<br>24</h4><div class="node amber"><strong>Michael Wong</strong><em>Review</em><span class="score">92</span></div><div class="node amber"><strong>Sarah Green</strong><em>Due in 12m</em><span class="score">67</span></div></div>
+                  <div class="graph-col"><h4>Board Reports<br>12</h4><div class="node green"><strong>Weekly Risk Report</strong><em>Included</em><span class="score">95</span></div><div class="node green"><strong>Savings Summary</strong><em>Included</em><span class="score">93</span></div></div>
+                </div>
+              </section>
+              <section class="panel" style="margin-top:10px">
+                <div class="panel-head"><h3>Proof-backed findings</h3><a>View all findings</a></div>
+                <table><thead><tr><th>Risk / Finding</th><th>Category</th><th>Source Evidence</th><th>Impact</th><th>Confidence</th><th>Approval</th></tr></thead><tbody>
+                  <tr><td><strong>Renewal above market benchmark</strong></td><td><span class="pill high">Contracts</span></td><td>Microsoft_EA_Renewal.pdf</td><td>$245,000</td><td><div class="bar"><i style="--w:94%"></i></div></td><td><span class="pill high">Open</span></td></tr>
+                  <tr><td><strong>Unused SaaS licenses</strong></td><td><span class="pill medium">Spend</span></td><td>SaaS_Usage_May.xlsx</td><td>$120,000</td><td><div class="bar"><i style="--w:89%"></i></div></td><td><span class="pill medium">In progress</span></td></tr>
+                  <tr><td><strong>Invoice mismatch - pricing</strong></td><td><span class="pill blue">Finance</span></td><td>AP_Invoices_May.xlsx</td><td>$27,850</td><td><div class="bar"><i style="--w:78%"></i></div></td><td><span class="pill blue">Review</span></td></tr>
+                </tbody></table>
+              </section>
+            </div>
+            <aside>
+              <section class="panel"><div class="panel-head"><h3>Decision queue <span class="pill high">8 pending</span></h3><a>View all</a></div><div class="queue">
+                <div class="queue-item"><div><span class="pill high">High</span><strong>Approve vendor contract renewal</strong><p>TechSoft Solutions • $245K impact • due 14m overdue</p></div><div class="queue-actions"><button class="btn primary">Approve</button><button class="btn">Edit</button><button class="btn red">Reject</button></div></div>
+                <div class="queue-item"><div><span class="pill medium">Medium</span><strong>Increase marketing ad spend</strong><p>Google Ads • $120K impact • due 1h 12m</p></div><div class="queue-actions"><button class="btn primary">Approve</button><button class="btn">Edit</button></div></div>
+              </div></section>
+              <section class="panel" style="margin-top:10px"><div class="panel-head"><h3>Active supervised agents</h3><a>5 of 5 running</a></div><table><tbody><tr><td><strong>Contract Analyst</strong></td><td><span class="pill low">Active</span></td><td><div class="bar"><i style="--w:78%"></i></div></td></tr><tr><td><strong>Spend Auditor</strong></td><td><span class="pill low">Active</span></td><td><div class="bar"><i style="--w:62%"></i></div></td></tr><tr><td><strong>Report Builder</strong></td><td><span class="pill medium">Waiting</span></td><td><div class="bar"><i style="--w:45%"></i></div></td></tr></tbody></table></section>
+            </aside>
+          </div>
+        </div>
+        <footer class="footer"><span><i class="dot"></i>System status</span><span><i class="dot"></i>Data pipeline Healthy</span><span><i class="dot"></i>AI extraction Healthy</span><span><i class="dot"></i>Agent runtime Healthy</span><span><i class="dot"></i>Approval service Healthy</span><em>Last updated 2m ago</em></footer>
+      </div>
+    </section>
+
+    <section class="screen" id="chat">
+      <aside class="side"></aside>
+      <div class="main">
+        <div class="topbar"><div class="title"><h2>AI Chat / Workbench</h2><p>Ask questions. Get evidence-backed answers. Approval-first.</p></div><div class="statusbar"><span><i class="dot"></i>Provider Gemini 1.5 Pro</span><span><i class="dot"></i>Supabase</span><span><i class="dot"></i>Connector health 98%</span><span><i class="dot warn"></i>Data quality 84%</span></div><div class="avatar">AR</div></div>
+        <div class="content">
+          <div class="kpis six">
+            <div class="metric danger"><div class="ring" style="--pct:78%">!</div><div><span>Money at risk</span><strong>$287,430</strong><em style="color:var(--red)">+18.6%</em></div></div>
+            <div class="metric"><div class="ring" style="--pct:84%">95</div><div><span>Evidence sources</span><strong>95</strong><em>7 new</em></div></div>
+            <div class="metric warn"><div class="ring" style="--pct:62%">8</div><div><span>Open approvals</span><strong>8</strong><em style="color:var(--amber)">3 urgent</em></div></div>
+            <div class="metric"><div class="ring" style="--pct:87%">87</div><div><span>AI confidence</span><strong>87%</strong><em>High</em></div></div>
+            <div class="metric"><div class="ring" style="--pct:84%">84</div><div><span>Data quality</span><strong>84%</strong><em>Good</em></div></div>
+            <div class="metric info"><div class="ring" style="--pct:100%">12</div><div><span>Proof trails</span><strong>12</strong><em>Linked</em></div></div>
+          </div>
+          <div class="chat-layout">
+            <section class="panel"><div class="panel-head"><h3>Chat history</h3><button class="btn primary">+ New chat</button></div><div class="toolbar"><input class="input" value="Search conversations..."></div><div class="chat-list"><div class="active">What changed this week...</div><div>Top renewal risks this month</div><div>Savings opportunities Q2</div><div>Spend leakage summary</div><div>Vendor contract renewals</div><div>Invoice mismatches &gt; $10K</div></div></section>
+            <section class="panel">
+              <div class="message-area"><div class="bubble">What changed this week and what should I approve next?</div><div class="answer"><strong>Genius (Gemini 1.5 Pro) <span class="pill low">Using workspace data</span></strong><p style="color:var(--muted);margin:0">Here are the top changes this week. All findings are grounded in your data sources and proof trails.</p><table><thead><tr><th>#</th><th>Finding</th><th>Impact</th><th>Confidence</th><th>Source</th><th>Proof trail</th><th>Action</th></tr></thead><tbody><tr class="selected-row"><td>1</td><td><strong>Microsoft EA renewal above benchmark</strong><br><span class="pill high">High risk</span></td><td>$245,000</td><td><div class="ring" style="--pct:92%;width:40px;height:40px">92</div></td><td>Microsoft_EA_Renewal.pdf</td><td><a class="link">PT-1247</a></td><td><button class="btn primary">Approve</button></td></tr><tr><td>2</td><td><strong>Unused SaaS licenses detected</strong><br><span class="pill medium">Medium</span></td><td>$34,200</td><td><div class="ring" style="--pct:89%;width:40px;height:40px">89</div></td><td>SaaS_Usage_May.xlsx</td><td><a class="link">PT-1245</a></td><td><button class="btn">Review</button></td></tr></tbody></table></div></div>
+              <div class="composer"><input class="input" value="Ask anything about your business data..."><div class="toolbar" style="padding:0"><button class="btn">Upload</button><button class="btn">URL</button><button class="btn">Excel / CSV</button><button class="btn primary">Send</button></div></div>
+            </section>
+            <aside class="panel"><div class="panel-head"><h3>Evidence in context</h3><a>View all</a></div><div class="rail-list"><article><strong>Microsoft_EA_Renewal_Quote.pdf</strong><em>PDF • 2.4 MB</em></article><article><strong>SaaS_Usage_May_2026.xlsx</strong><em>XLSX • 1.1 MB</em></article><article><strong>AP_Invoices_May.csv</strong><em>CSV • 842 KB</em></article></div><div class="panel-head"><h3>Active agents</h3><a>5 of 5</a></div><div class="rail-list"><article><strong>Contract Analyst</strong><em>Active</em></article><article><strong>Spend Auditor</strong><em>Active</em></article><article><strong>Report Builder</strong><em>Blocked - approval required</em></article></div><div class="panel-head"><h3>Data quality</h3><a>84%</a></div><div class="rail-list"><div class="bar"><i style="--w:84%"></i></div></div></aside>
+          </div>
+        </div>
+        <footer class="footer"><span><i class="dot"></i>Answers grounded in verified evidence</span><span><i class="dot"></i>Actions require human approval</span></footer>
+      </div>
+    </section>
+
+    <section class="screen" id="data-intake">
+      <aside class="side"></aside>
+      <div class="main">
+        <div class="topbar"><div class="title"><h2>Data Intake</h2><p>Upload, connect, and review business evidence before it impacts metrics.</p></div><div class="statusbar"><span><i class="dot"></i>Provider Gemini 1.5 Pro</span><span><i class="dot"></i>Database Supabase</span><span><i class="dot"></i>Connector health 98%</span><span>Last sync 2m ago</span></div><div class="avatar">AR</div></div>
+        <div class="content">
+          <div class="kpis six"><div class="metric"><div class="ring" style="--pct:95%">95</div><div><span>Evidence sources</span><strong>95</strong><em>12 connected</em></div></div><div class="metric info"><div class="ring" style="--pct:88%">132</div><div><span>Files processed</span><strong>132</strong><em>This week</em></div></div><div class="metric"><div class="ring" style="--pct:88%">88</div><div><span>Extraction confidence</span><strong>88%</strong><em>Average</em></div></div><div class="metric danger"><div class="ring" style="--pct:55%">24</div><div><span>Pending review</span><strong>24</strong><em style="color:var(--red)">Needs attention</em></div></div><div class="metric"><div class="ring" style="--pct:84%">84</div><div><span>Data quality score</span><strong>84%</strong><em>Good</em></div></div><div class="metric danger"><div class="ring" style="--pct:42%">7</div><div><span>Duplicate sources</span><strong>7</strong><em>Auto-detected</em></div></div></div>
+          <div class="grid-3-wide">
+            <section class="panel pad"><div class="panel-head" style="padding:0 0 10px"><h3>1. Upload evidence</h3><span class="label">Supported types</span></div><div class="upload-box"><div style="font-size:42px;color:var(--text-soft)">⇧</div><strong>Drag & drop files here</strong><span style="color:var(--muted)">or</span><div class="toolbar"><button class="btn primary">Browse Files</button><button class="btn">Paste URL</button><button class="btn">Connect Source</button></div><div class="chips"><span class="chip">PDF</span><span class="chip">DOCX</span><span class="chip">XLSX</span><span class="chip">CSV</span><span class="chip">TXT</span><span class="chip">PNG / JPG</span></div></div><div class="panel pad" style="margin-top:10px"><h3>URL Analysis</h3><p style="color:var(--muted);font-size:12px">Paste a URL to analyze web content or public filings.</p><div class="toolbar" style="padding:0"><input class="input" value="https://example.com/contract/12345"><button class="btn primary">Analyze URL</button></div></div></section>
+            <section class="panel"><div class="panel-head"><h3>2. Extraction Review</h3><span class="pill low">12 / 15 fields confirmed</span></div><table><thead><tr><th>Field</th><th>Extracted Value</th><th>Confidence</th><th>Source</th><th>Confirmed</th><th>Actions</th></tr></thead><tbody><tr><td>Counterparty</td><td><strong>TechSoft Solutions LLC</strong></td><td>95% <div class="bar"><i style="--w:95%"></i></div></td><td>Page 1</td><td>✓</td><td>✎</td></tr><tr><td>Agreement Type</td><td>Master Services Agreement</td><td>93% <div class="bar"><i style="--w:93%"></i></div></td><td>Page 1</td><td>✓</td><td>✎</td></tr><tr><td>Renewal Date</td><td>May 15, 2027</td><td>91% <div class="bar"><i style="--w:91%"></i></div></td><td>Page 8</td><td>□</td><td>✎</td></tr><tr><td>Contract Value</td><td>$248,700.00</td><td>94% <div class="bar"><i style="--w:94%"></i></div></td><td>Page 2</td><td>✓</td><td>✎</td></tr></tbody></table><div class="toolbar" style="justify-content:flex-end"><button class="btn">Reset</button><button class="btn primary">Save changes</button></div></section>
+            <aside><section class="panel"><div class="panel-head"><h3>Intake rules</h3><a>Manage rules</a></div><div class="rail-list"><article><strong>Extract key fields and metadata</strong><em>AI extracts and suggests values</em></article><article><strong>Detect duplicates and near-matches</strong><em>Auto-check before new sources</em></article><article><strong>Require human confirmation</strong><em>No data affects metrics without review</em></article></div></section><section class="panel" style="margin-top:10px"><div class="panel-head"><h3>Review actions</h3></div><div class="rail-list"><button class="btn primary">Confirm Selected (3)</button><button class="btn blue">Send to Diagnostics (3)</button><button class="btn">Create Proof Trail (3)</button><button class="btn">Export Extracted Data</button></div></section></aside>
+          </div>
+          <section class="panel"><div class="panel-head"><h3>3. Uploaded sources</h3><div class="toolbar" style="padding:0"><button class="btn">All sources</button><button class="btn">All status</button><button class="btn">Columns</button></div></div><table><thead><tr><th></th><th>Source name</th><th>Type</th><th>Uploaded</th><th>Uploaded by</th><th>Extraction status</th><th>Confidence</th><th>Fields</th><th>Proof trail</th><th>Actions</th></tr></thead><tbody><tr><td>✓</td><td><strong>Vendor_Contract_2026.pdf</strong></td><td>Contract</td><td>May 24</td><td>Alex Rivera</td><td><span class="pill low">Complete</span></td><td><div class="bar"><i style="--w:92%"></i></div></td><td>12 / 15</td><td><a class="link">PT-1268</a></td><td><button class="btn">Review</button></td></tr><tr><td>✓</td><td><strong>Spend_Analysis_May_2026.xlsx</strong></td><td>Spreadsheet</td><td>May 24</td><td>Sarah Green</td><td><span class="pill low">Complete</span></td><td><div class="bar"><i style="--w:89%"></i></div></td><td>18 / 22</td><td><a class="link">PT-1267</a></td><td><button class="btn">Send</button></td></tr></tbody></table></section>
+        </div>
+        <footer class="footer"><span><i class="dot"></i>Data pipeline Healthy</span><span><i class="dot"></i>AI extraction Healthy</span><span><i class="dot"></i>Approval service Healthy</span></footer>
+      </div>
+    </section>
+
+    <section class="screen" id="diagnostics">
+      <aside class="side"></aside>
+      <div class="main">
+        <div class="topbar"><div class="title"><h2>Diagnostics</h2><p>Understand health, surface risks, and take action with evidence.</p></div><div class="statusbar"><span><i class="dot"></i>Provider Gemini</span><span><i class="dot"></i>Supabase</span><span><i class="dot"></i>Connector health 98%</span><span><i class="dot"></i>Data quality Good</span></div><div class="avatar">AR</div></div>
+        <div class="content"><div class="kpis eight"><div class="metric"><div class="ring" style="--pct:72%">72</div><div><span>Business health</span><strong>72</strong><em>Moderate risk</em></div></div><div class="metric"><div class="ring" style="--pct:62%">62</div><div><span>Diagnostics score</span><strong>62%</strong><em>+5 pts</em></div></div><div class="metric"><div class="ring" style="--pct:68%">68</div><div><span>Proof coverage</span><strong>68%</strong><em>+4 pts</em></div></div><div class="metric danger"><div class="ring" style="--pct:72%">24</div><div><span>Approval backlog</span><strong>24</strong><em>+4</em></div></div><div class="metric danger"><div class="ring" style="--pct:76%">$</div><div><span>Renewal exposure</span><strong>$7.62M</strong><em>-7%</em></div></div><div class="metric danger"><div class="ring" style="--pct:70%">$</div><div><span>Spend leakage</span><strong>$3.21M</strong><em>+15%</em></div></div><div class="metric warn"><div class="ring" style="--pct:54%">18</div><div><span>Invoice mismatch</span><strong>18</strong><em>+4</em></div></div><div class="metric"><div class="ring" style="--pct:87%">87</div><div><span>Confidence avg</span><strong>87%</strong><em>+5 pts</em></div></div></div>
+          <div class="grid-2"><section class="panel"><div class="tabs"><span class="active">Overview</span><span>Signals</span><span>Proof Trails</span><span>Trends</span><span>Benchmarks</span></div><div class="toolbar"><button class="btn">All Categories</button><button class="btn">All Severity</button><button class="btn">All Owners</button><button class="btn">Filters</button></div><table><thead><tr><th>Category</th><th>Score</th><th>Signals</th><th>Est. impact</th><th>Trend</th><th>Confidence</th><th>Proof trails</th><th>Status</th></tr></thead><tbody><tr class="selected-row"><td><strong>Spend Leakage</strong><br><span class="label">Uncaptured spend & pricing drift</span></td><td><div class="ring" style="--pct:48%;width:42px;height:42px;--tone:var(--amber)">48</div></td><td>36</td><td>$3.21M</td><td style="color:var(--red)">Worsening</td><td><div class="bar"><i style="--w:92%"></i></div></td><td>24</td><td><span class="pill high">Open</span></td></tr><tr><td><strong>Renewal Risk</strong></td><td><div class="ring" style="--pct:55%;width:42px;height:42px;--tone:var(--amber)">55</div></td><td>28</td><td>$7.62M</td><td>Flat</td><td><div class="bar"><i style="--w:89%"></i></div></td><td>18</td><td><span class="pill medium">Review</span></td></tr><tr><td><strong>Data Quality</strong></td><td><div class="ring" style="--pct:68%;width:42px;height:42px">68</div></td><td>41</td><td>$0.48M</td><td style="color:var(--emerald)">Improving</td><td><div class="bar"><i style="--w:86%"></i></div></td><td>22</td><td><span class="pill blue">In progress</span></td></tr></tbody></table></section><aside class="panel"><div class="panel-head"><h3>Spend Leakage <span class="pill high">High risk</span></h3><button class="btn">Open</button></div><div class="inspector-grid"><div class="mini-card"><span>Category score</span><strong>48</strong></div><div class="mini-card"><span>Estimated impact</span><strong>$3.21M</strong></div><div class="mini-card"><span>Confidence</span><strong>92%</strong></div></div><div class="tabs"><span class="active">Overview</span><span>Signals (36)</span><span>Proof trails (24)</span><span>Related</span></div><div class="rail-list"><article><strong>Risk narrative</strong><em>We identified $3.21M in potential spend leakage across 47 categories.</em></article><article><strong>Top evidence</strong><em>Maverick_purchases_Q1.pdf • Contract_vs_PO_variance.xlsx • Pricing_drift_ACME.pdf</em></article><article><strong>Recommended next action</strong><em>Review top 12 vendors and initiate pricing realignment.</em><button class="btn primary">Create action plan</button></article></div></aside></div>
+        </div><footer class="footer"><span><i class="dot"></i>System status</span><span><i class="dot"></i>Diagnostics engine Healthy</span></footer></div>
+    </section>
+
+    <section class="screen" id="savings"><aside class="side"></aside><div class="main"><div class="topbar"><div class="title"><h2>Savings Radar</h2><p>Find hidden leaks and savings opportunities backed by evidence.</p></div><div class="statusbar"><span><i class="dot"></i>Provider Gemini</span><span><i class="dot"></i>Supabase</span><span><i class="dot"></i>Data quality Good 84%</span></div><div class="avatar">AR</div></div><div class="content"><div class="kpis eight"><div class="metric danger"><div class="ring" style="--pct:80%">!</div><div><span>Total money at risk</span><strong>$16.44M</strong><em>Confidence high</em></div></div><div class="metric"><div class="ring" style="--pct:74%">$</div><div><span>Savings opportunities</span><strong>$4.87M</strong><em>+12.3%</em></div></div><div class="metric danger"><div class="ring" style="--pct:72%">23</div><div><span>High confidence risks</span><strong>23</strong><em>+15%</em></div></div><div class="metric warn"><div class="ring" style="--pct:68%">R</div><div><span>Renewal exposure</span><strong>$7.62M</strong><em>Medium</em></div></div><div class="metric danger"><div class="ring" style="--pct:75%">S</div><div><span>Spend leakage</span><strong>$3.21M</strong><em>High</em></div></div><div class="metric"><div class="ring" style="--pct:70%">D</div><div><span>Duplicate payments</span><strong>$1.23M</strong><em>23%</em></div></div><div class="metric warn"><div class="ring" style="--pct:60%">8</div><div><span>Open approvals</span><strong>8</strong><em>3 urgent</em></div></div><div class="metric info"><div class="ring" style="--pct:84%">1.2k</div><div><span>Proof trails</span><strong>1,247</strong><em>+14%</em></div></div></div><div class="grid-2"><section class="panel"><div class="panel-head"><h3>Evidence-backed opportunities</h3><div class="toolbar" style="padding:0"><button class="btn">Save view</button><button class="btn">Export</button></div></div><div class="toolbar"><button class="btn">All Categories</button><button class="btn">All Severity</button><button class="btn">All Confidence</button><button class="btn">Filters</button></div><table><thead><tr><th>#</th><th>Opportunity / Risk</th><th>Category</th><th>Severity</th><th>Confidence</th><th>Est. Impact</th><th>Source</th><th>Proof</th><th>Action</th></tr></thead><tbody><tr class="selected-row"><td>1</td><td><strong>Microsoft renewal above benchmark</strong></td><td>Renewal Risk</td><td><span class="pill high">High</span></td><td><div class="ring" style="--pct:92%;width:38px;height:38px">92</div></td><td>$2.45M</td><td>Microsoft_EA.pdf</td><td><a class="link">PT-1247</a></td><td>Renegotiate terms</td></tr><tr><td>2</td><td><strong>Unused SaaS licenses</strong></td><td>Spend Leakage</td><td><span class="pill high">High</span></td><td><div class="ring" style="--pct:89%;width:38px;height:38px">89</div></td><td>$1.15M</td><td>SaaS_Usage.xlsx</td><td><a class="link">PT-1245</a></td><td>Reclaim seats</td></tr><tr><td>3</td><td><strong>Duplicate vendor payments</strong></td><td>Data Quality</td><td><span class="pill high">High</span></td><td><div class="ring" style="--pct:91%;width:38px;height:38px">91</div></td><td>$280K</td><td>AP_Invoices.xlsx</td><td><a class="link">PT-1239</a></td><td>Void duplicates</td></tr></tbody></table></section><aside class="panel"><div class="panel-head"><h3>Microsoft renewal above benchmark <span class="pill high">High</span></h3><button class="btn">Open</button></div><div class="inspector-grid"><div class="mini-card"><span>Impact</span><strong>$2.45M</strong></div><div class="mini-card"><span>Confidence</span><strong>92%</strong></div><div class="mini-card"><span>Owner</span><strong>Sarah K.</strong></div></div><div class="rail-list"><article><strong>Risk narrative</strong><em>EA renewal quote is 18-22% above benchmark for similar scope and usage.</em></article><article><strong>Supporting evidence</strong><em>Renewal quote, benchmark spreadsheet, usage report.</em></article><article><strong>Recommended agent action</strong><em>Contract Analyst: renegotiate Microsoft EA terms.</em><button class="btn blue">Run agent</button></article></div><div class="toolbar"><button class="btn">View proof trail</button><button class="btn primary">Create approval</button><button class="btn blue">Ask AI</button><button class="btn">Export</button></div></aside></div></div><footer class="footer"><span><i class="dot"></i>Savings radar Healthy</span></footer></div></section>
+
+    <section class="screen" id="agents"><aside class="side"></aside><div class="main"><div class="topbar"><div class="title"><h2>Agent Control</h2><p>Supervised AI agents analyze, draft, and recommend. You approve.</p></div><div class="statusbar"><span><i class="dot"></i>Provider Gemini</span><span><i class="dot"></i>Supabase</span><span><i class="dot"></i>Connector health 98%</span></div><div class="avatar">AR</div></div><div class="content"><div class="kpis eight"><div class="metric"><div class="ring" style="--pct:100%">6</div><div><span>Active agents</span><strong>6 / 6</strong><em>All online</em></div></div><div class="metric warn"><div class="ring" style="--pct:58%">18</div><div><span>Queued workloads</span><strong>18</strong><em>-2 vs hour</em></div></div><div class="metric info"><div class="ring" style="--pct:74%">87</div><div><span>Outputs today</span><strong>87</strong><em>+21</em></div></div><div class="metric danger"><div class="ring" style="--pct:40%">2</div><div><span>Guardrail incidents</span><strong>2</strong><em>+1</em></div></div><div class="metric"><div class="ring" style="--pct:70%">2m</div><div><span>Avg runtime</span><strong>2m 14s</strong><em>+18%</em></div></div><div class="metric warn"><div class="ring" style="--pct:60%">8</div><div><span>Approvals pending</span><strong>8</strong><em>+3</em></div></div><div class="metric"><div class="ring" style="--pct:87%">87</div><div><span>Agent confidence</span><strong>87%</strong><em>+5 pts</em></div></div><div class="metric danger"><div class="ring" style="--pct:100%">12</div><div><span>External actions blocked</span><strong>12</strong><em>No autonomy</em></div></div></div><div class="grid-2"><section class="panel"><div class="panel-head"><h3>Supervised agents <span class="pill">6</span></h3><div class="toolbar" style="padding:0"><button class="btn">All status</button><button class="btn blue">Configure guardrails</button></div></div><table><thead><tr><th>Agent</th><th>Status</th><th>Workload</th><th>Last run</th><th>Outputs</th><th>Confidence</th><th>Guardrails</th><th>Queue</th><th>Next action</th></tr></thead><tbody><tr class="selected-row"><td><strong>Contract Analyst</strong><br><span class="label">Contracts & obligations</span></td><td><span class="pill low">Active</span></td><td>High <div class="bar"><i style="--w:78%"></i></div></td><td>2m ago</td><td>23</td><td><div class="ring" style="--pct:92%;width:38px;height:38px">92</div></td><td>Strict</td><td>5</td><td>Review renewals</td></tr><tr><td><strong>Spend Auditor</strong></td><td><span class="pill low">Active</span></td><td>Medium <div class="bar"><i style="--w:62%"></i></div></td><td>5m ago</td><td>19</td><td><div class="ring" style="--pct:89%;width:38px;height:38px">89</div></td><td>Strict</td><td>4</td><td>Investigate leakage</td></tr><tr><td><strong>Action Drafter</strong></td><td><span class="pill low">Active</span></td><td>Medium <div class="bar"><i style="--w:48%"></i></div></td><td>3m ago</td><td>4</td><td><div class="ring" style="--pct:87%;width:38px;height:38px">87</div></td><td>Strict</td><td>4</td><td>Draft actions</td></tr></tbody></table><div class="toolbar"><button class="btn primary">Run selected</button><button class="btn blue">Run all agents</button><button class="btn">View outputs</button><button class="btn" style="border-color:rgba(246,168,58,.42);color:var(--amber)">Review approvals (8)</button></div></section><aside class="panel"><div class="panel-head"><h3>Contract Analyst <span class="pill low">Active</span></h3><a>View outputs</a></div><div class="tabs"><span class="active">Overview</span><span>Guardrails</span><span>Tools</span><span>Tasks</span><span>Prooftrails</span></div><div class="inspector-grid"><div class="mini-card"><span>Workload</span><strong style="color:var(--red)">High</strong></div><div class="mini-card"><span>Outputs</span><strong>23</strong></div><div class="mini-card"><span>Guardrails</span><strong style="color:var(--emerald)">On</strong></div></div><div class="rail-list"><article><strong>Blocked external actions</strong><em>Send emails, modify records, payments, vendor notifications.</em></article><article><strong>Linked proof trails</strong><em>PT-1247 Acme MSA • PT-1245 Globex renewal • PT-1243 Initech terms.</em></article><article><strong>Approval queue for this agent</strong><em>4 pending. All require human decision.</em></article></div></aside></div></div><footer class="footer"><span><i class="dot"></i>No autonomous actions</span><span><i class="dot"></i>Agent runtime Healthy</span></footer></div></section>
+
+    <section class="screen" id="approvals"><aside class="side"></aside><div class="main"><div class="topbar"><div class="title"><h2>Approvals</h2><p>Human oversight for high-impact actions. You stay in control.</p></div><div class="statusbar"><span><i class="dot"></i>AI Provider Gemini 1.5 Pro</span><span><i class="dot"></i>Database Supabase</span><span><i class="dot"></i>Connector health 98%</span><span><i class="dot warn"></i>Data quality 24</span></div><div class="avatar">AR</div></div><div class="content"><div class="kpis eight"><div class="metric warn"><div class="ring" style="--pct:60%">24</div><div><span>Open approvals</span><strong>24</strong><em>+6</em></div></div><div class="metric danger"><div class="ring" style="--pct:54%">6</div><div><span>Urgent approvals</span><strong>6</strong><em>+2</em></div></div><div class="metric"><div class="ring" style="--pct:87%">87</div><div><span>Approved actions</span><strong>87</strong><em>+18%</em></div></div><div class="metric danger"><div class="ring" style="--pct:52%">12</div><div><span>Rejected actions</span><strong>12</strong><em>-3</em></div></div><div class="metric info"><div class="ring" style="--pct:45%">5</div><div><span>Snoozed items</span><strong>5</strong><em>--</em></div></div><div class="metric"><div class="ring" style="--pct:72%">28m</div><div><span>Avg review time</span><strong>28m</strong><em>-12%</em></div></div><div class="metric"><div class="ring" style="--pct:74%">$</div><div><span>Est. impact</span><strong>$3.21M</strong><em>Across 24</em></div></div><div class="metric"><div class="ring" style="--pct:84%">84</div><div><span>Evidence complete</span><strong>84%</strong><em>+6%</em></div></div></div><div class="grid-2"><section class="panel"><div class="panel-head"><h3>Human decision queue <span class="pill">24</span></h3><div class="toolbar" style="padding:0"><button class="btn">Filters</button><button class="btn">Sort: Due soonest</button></div></div><div class="tabs"><span class="active">All 24</span><span>Urgent 6</span><span>Due soon 7</span><span>Mine 8</span><span>By Agent</span></div><table><thead><tr><th></th><th>Action</th><th>Impact</th><th>Owner</th><th>Evidence</th><th>Proof trail</th><th>Status</th><th>Due</th><th>Agent</th><th>AI Confidence</th></tr></thead><tbody><tr class="selected-row"><td>✓</td><td><strong>Approve vendor contract renewal</strong><br>TechSoft Solutions</td><td>$245K</td><td>Michael Wong</td><td>12 docs</td><td><a class="link">PT-1247</a></td><td><span class="pill high">Urgent</span></td><td style="color:var(--red)">14m overdue</td><td>Contract Analyst</td><td><div class="ring" style="--pct:92%;width:36px;height:36px">92</div></td></tr><tr><td>□</td><td><strong>Increase marketing ad spend</strong></td><td>$120K</td><td>Sarah Green</td><td>8 docs</td><td><a class="link">PT-1245</a></td><td><span class="pill medium">Due soon</span></td><td>1h 12m</td><td>Spend Auditor</td><td><div class="ring" style="--pct:89%;width:36px;height:36px">89</div></td></tr></tbody></table></section><aside class="panel"><div class="panel-head"><h3>Approve vendor contract renewal <span class="pill high">High</span></h3><span class="pill high">Urgent</span></div><div class="tabs"><span class="active">Overview</span><span>Evidence (12)</span><span>Impact</span><span>Timeline</span></div><div class="inspector-grid"><div class="mini-card"><span>Impact summary</span><strong>$245,000</strong><em class="label">Annual savings</em></div><div class="mini-card"><span>Confidence</span><strong>92%</strong></div><div class="mini-card"><span>Evidence</span><strong>12 docs</strong></div></div><div class="rail-list"><article><strong>AI recommended action</strong><em>Approve the renewal with negotiated 18-22% price reduction.</em></article><article><strong>Reviewer notes</strong><em>Vendor performance is excellent and pricing is below benchmark after negotiation.</em></article></div><div class="toolbar"><button class="btn primary">Approve</button><button class="btn red">Reject</button><button class="btn">Edit details</button><button class="btn">Request more evidence</button><button class="btn">Snooze</button><button class="btn">Mark done</button></div></aside></div></div><footer class="footer"><span><i class="dot"></i>Approval service Healthy</span></footer></div></section>
+
+    <section class="screen" id="excel"><aside class="side"></aside><div class="main"><div class="topbar"><div class="title"><h2>Excel Workspace</h2><p>Spreadsheet intelligence. Detect issues, quantify impact, and take approval-safe actions.</p></div><div class="statusbar"><span><i class="dot"></i>Gemini</span><span><i class="dot"></i>Supabase</span><span><i class="dot"></i>Connector health 98%</span></div><div class="avatar">AR</div></div><div class="content"><div class="kpis eight"><div class="metric"><div class="ring" style="--pct:86%">1.42M</div><div><span>Rows processed</span><strong>1.42M</strong><em>+24.6%</em></div></div><div class="metric"><div class="ring" style="--pct:78%">$</div><div><span>Spend analyzed</span><strong>$6.21M</strong><em>+8.7%</em></div></div><div class="metric danger"><div class="ring" style="--pct:68%">95</div><div><span>Duplicate payments</span><strong>95</strong><em>+19</em></div></div><div class="metric purple"><div class="ring" style="--pct:55%">-$</div><div><span>Forecast variance</span><strong>-$430K</strong><em>-5.1%</em></div></div><div class="metric warn"><div class="ring" style="--pct:62%">$</div><div><span>Margin risk</span><strong>$1.21M</strong><em>+15.6%</em></div></div><div class="metric warn"><div class="ring" style="--pct:66%">8k</div><div><span>Missing values</span><strong>8,771</strong><em>-6.3%</em></div></div><div class="metric warn"><div class="ring" style="--pct:55%">241</div><div><span>Formula issues</span><strong>241</strong><em>+31</em></div></div><div class="metric"><div class="ring" style="--pct:96%">96</div><div><span>Export readiness</span><strong>96%</strong><em>+12%</em></div></div></div><div class="grid-2"><section class="panel"><div class="tabs"><span class="active">Workbook view</span><span>Sheet overview</span><span>Anomalies</span><span>Trends</span><span>Modeling</span><span>What-if</span></div><div class="toolbar"><button class="btn">Spend_Analysis_May_2026.xlsx</button><button class="btn">Sheet1 - Transactions</button><span class="pill low">Live</span><button class="btn">Columns</button><button class="btn">Filters 3</button><button class="btn">Export</button></div><table><thead><tr><th>#</th><th>Source / Sheet</th><th>Row</th><th>Description</th><th>Amount</th><th>Category</th><th>Anomaly</th><th>Confidence</th><th>Suggested Fix</th><th>Approval</th></tr></thead><tbody><tr><td>1</td><td>Spend_Analysis.xlsx</td><td>12,241</td><td>Office Depot supplies</td><td>$18,742.19</td><td>Office Supplies</td><td><span class="pill high">Duplicate</span></td><td>95%</td><td>Keep first, void duplicate</td><td><span class="pill medium">Pending</span></td></tr><tr><td>2</td><td>Vendor_Payments.csv</td><td>15,882</td><td>Google Ads</td><td>$24,500.00</td><td>Marketing</td><td><span class="pill medium">High spend</span></td><td>89%</td><td>Review budget overrun</td><td><span class="pill blue">Review</span></td></tr><tr><td>3</td><td>Contracts_Master.xlsx</td><td>8,771</td><td>Acme CRM renewal</td><td>$72,000.00</td><td>Software</td><td><span class="pill high">At risk</span></td><td>93%</td><td>Renegotiate terms</td><td><span class="pill medium">Pending</span></td></tr></tbody></table></section><aside class="panel"><div class="panel-head"><h3>AI Analysis Summary</h3><a>View full report</a></div><div class="rail-list"><article><strong>Spend leakage detected</strong><em>Impact $3.21M • 92%</em></article><article><strong>Duplicate payments found</strong><em>Impact $280K • 89%</em></article><article><strong>Forecast variance increasing</strong><em>Impact -$430K • 78%</em></article></div><div class="panel-head"><h3>Spend leakage by category</h3></div><div class="rail-list"><div class="bar"><i style="--w:86%;--tone:var(--red)"></i></div><div class="bar"><i style="--w:62%;--tone:var(--amber)"></i></div><div class="bar"><i style="--w:44%;--tone:var(--emerald)"></i></div></div></aside></div><div class="grid-2"><section class="panel"><div class="panel-head"><h3>Data connectors</h3><a>Manage connectors</a></div><div class="rail-list" style="grid-template-columns:repeat(5,1fr)"><article><strong>Excel / CSV Upload</strong><em>1.24M rows</em></article><article><strong>Google Sheets</strong><em>286K rows</em></article><article><strong>CRM Export</strong><em>412K rows</em></article><article><strong>Finance Upload</strong><em>198K rows</em></article><article><strong>Business Live</strong><em>Streaming</em></article></div></section><section class="panel"><div class="panel-head"><h3>Proof Trail</h3></div><table><tbody><tr><td>12,241</td><td>Duplicate payment</td><td>Keep first, void duplicate</td><td><a class="link">PT-1247</a></td></tr><tr><td>8,771</td><td>Contract at risk</td><td>Renegotiate renewal</td><td><a class="link">PT-1245</a></td></tr></tbody></table></section></div></div><footer class="footer"><span><i class="dot"></i>Excel analysis Active</span></footer></div></section>
+
+    <section class="screen" id="connectors"><aside class="side"></aside><div class="main"><div class="topbar"><div class="title"><h2>Connectors / Business Live</h2><p>Connect, sync, and manage your business data sources.</p></div><div class="statusbar"><span><i class="dot"></i>Provider Gemini</span><span><i class="dot"></i>Supabase</span><span><i class="dot"></i>Connector health 98%</span><span>Last sync 2m ago</span></div><div class="avatar">AR</div></div><div class="content"><div class="kpis eight"><div class="metric"><div class="ring" style="--pct:76%">34</div><div><span>Connected sources</span><strong>34</strong><em>24 active</em></div></div><div class="metric info"><div class="ring" style="--pct:82%">18k</div><div><span>Live events today</span><strong>18,562</strong><em>Streaming</em></div></div><div class="metric"><div class="ring" style="--pct:88%">1.42M</div><div><span>Rows synced</span><strong>1.42M</strong><em>Across all sources</em></div></div><div class="metric"><div class="ring" style="--pct:98%">98</div><div><span>Sync health</span><strong>98%</strong><em>Healthy</em></div></div><div class="metric danger"><div class="ring" style="--pct:42%">3</div><div><span>Failed syncs</span><strong>3</strong><em>Requires attention</em></div></div><div class="metric info"><div class="ring" style="--pct:95%">2m</div><div><span>Data freshness</span><strong>2m ago</strong><em>Real-time</em></div></div><div class="metric"><div class="ring" style="--pct:68%">68</div><div><span>Evidence coverage</span><strong>68%</strong><em>Good</em></div></div><div class="metric warn"><div class="ring" style="--pct:55%">24</div><div><span>Pending reviews</span><strong>24</strong><em>High priority</em></div></div></div><div class="grid-3"><aside class="panel"><div class="panel-head"><h3>Connector catalog</h3></div><div class="rail-list"><article><strong>Excel / CSV Upload</strong><em>Active</em></article><article><strong>Google Sheets</strong><em>Demo</em></article><article><strong>Finance Upload</strong><em>Active</em></article><article><strong>CRM Export</strong><em>Demo</em></article><article><strong>Business Live Webhook</strong><em>Active</em></article><article><strong>URL Analysis</strong><em>Active</em></article><article><strong>Gmail</strong><em>Locked</em></article><article><strong>QuickBooks / Xero</strong><em>Locked</em></article></div></aside><section class="panel"><div class="panel-head"><h3>Business Live Webhook <span class="pill low">Active</span></h3><div class="toolbar" style="padding:0"><button class="btn">View docs</button><button class="btn">Connector settings</button></div></div><div class="rail-list" style="grid-template-columns:repeat(5,1fr)"><article><strong>Create endpoint</strong><em>Endpoint created</em></article><article><strong>Install plugin / script</strong><em>Script installed</em></article><article><strong>Map event fields</strong><em>7 fields mapped</em></article><article><strong>Test event</strong><em>Last test 2m ago</em></article><article><strong>Start streaming</strong><em>Streaming live</em></article></div><div class="tabs"><span class="active">Schema mapping</span><span>Event stream</span><span>Logs</span><span>Transformations</span></div><table><thead><tr><th>Payload field</th><th>Example value</th><th>Mapped to</th><th>Data type</th><th>Required</th></tr></thead><tbody><tr><td>order_id</td><td>ORD-884512</td><td>Order ID</td><td>string</td><td>✓</td></tr><tr><td>customer</td><td>jane.doe@email.com</td><td>Customer Email</td><td>string</td><td>✓</td></tr><tr><td>amount</td><td>129.99</td><td>Order Amount</td><td>number</td><td>✓</td></tr><tr><td>status</td><td>completed</td><td>Order Status</td><td>string</td><td>✓</td></tr></tbody></table><div class="panel-head"><h3>Live event stream</h3><span class="pill low">Live</span></div><table><tbody><tr><td>10:42:31 AM</td><td>purchase</td><td>web</td><td>ORD-884512</td><td>$129.99</td><td>completed</td><td>2s ago</td></tr><tr><td>10:42:17 AM</td><td>refund</td><td>web</td><td>REF-884498</td><td style="color:var(--red)">-$49.00</td><td>refunded</td><td>4s ago</td></tr></tbody></table></section><aside class="panel"><div class="panel-head"><h3>Connector health</h3><span class="pill low">Healthy</span></div><div class="rail-list"><article><strong>98%</strong><em>Latency 1.8s • Error rate 0.12%</em></article><article><strong>Authentication</strong><em>API key connected • Read/write</em></article><article><strong>Retry queue</strong><em>3 items</em></article><article><strong>Webhook secret</strong><em>whsec_••••a7b3</em></article><button class="btn primary">Send test event</button></div></aside></div><section class="panel pad"><div class="graph" style="grid-template-columns:repeat(6,1fr)"><div class="node green"><strong>1 Live event</strong><em>purchase ORD-884512</em></div><div class="node blue"><strong>2 Extracted fact</strong><em>Order amount $129.99</em></div><div class="node green"><strong>3 Metric update</strong><em>Revenue tracked</em></div><div class="node amber"><strong>4 Risk impact</strong><em>Low risk</em></div><div class="node purple"><strong>5 Approval</strong><em>Auto-approved rules</em></div><div class="node blue"><strong>6 Audit trail</strong><em>PT-1247</em></div></div></section></div><footer class="footer"><span><i class="dot"></i>Connector sync Healthy</span></footer></div></section>
+
+    <section class="screen" id="reports"><aside class="side"></aside><div class="main"><div class="topbar"><div class="title"><h2>Board Reports</h2><p>Board-ready packs for executives and directors.</p></div><div class="statusbar"><span><i class="dot"></i>Genius MVP</span><span><i class="dot warn"></i>Data quality 84%</span><span><i class="dot"></i>Open approvals 8</span></div><div class="avatar">AR</div></div><div class="content"><div class="kpis six"><div class="metric"><div class="ring" style="--pct:100%">100</div><div><span>Report readiness</span><strong>100%</strong><em>Ready</em></div></div><div class="metric"><div class="ring" style="--pct:72%">12</div><div><span>Reports generated</span><strong>12</strong><em>This week</em></div></div><div class="metric info"><div class="ring" style="--pct:68%">68</div><div><span>Proof coverage</span><strong>68%</strong><em>+5pp</em></div></div><div class="metric"><div class="ring" style="--pct:87%">23</div><div><span>Approvals included</span><strong>23</strong><em>This week</em></div></div><div class="metric warn"><div class="ring" style="--pct:60%">3</div><div><span>Draft packs</span><strong>3</strong><em>Need review</em></div></div><div class="metric"><div class="ring" style="--pct:95%">OK</div><div><span>Last published</span><strong>May 26</strong><em>10:15 AM</em></div></div></div><div class="grid-3"><aside class="panel"><div class="panel-head"><h3>Report Library</h3></div><div class="toolbar"><input class="input" value="Search reports..."></div><div class="rail-list"><article><strong>Weekly Risk Report</strong><em>Board-ready • May 26</em></article><article><strong>Savings Proof Pack</strong><em>Board-ready • May 26</em></article><article><strong>Renewal Risk Report</strong><em>Draft • May 25</em></article><article><strong>Action History</strong><em>Board-ready • May 24</em></article></div></aside><section class="panel"><div class="panel-head"><h3>Weekly Risk Report <span class="pill low">Board-ready</span></h3><div class="toolbar" style="padding:0"><button class="btn">Export</button><button class="btn red">PDF</button><button class="btn primary">XLSX</button></div></div><div class="tabs"><span class="active">Executive Summary</span><span>Metrics</span><span>Findings</span><span>Approvals (6)</span><span>Proof Chain</span><span>Linked Evidence</span></div><div class="rail-list"><article><strong>Executive Summary</strong><em>This report summarizes top operational, financial, and vendor risks identified this week, with recommended actions and approval status.</em></article></div><div class="inspector-grid"><div class="mini-card"><span>High risks</span><strong>7</strong></div><div class="mini-card"><span>At-risk spend</span><strong>$3.21M</strong></div><div class="mini-card"><span>Savings at risk</span><strong>$1.12M</strong></div></div><table><thead><tr><th>Top finding</th><th>Impact</th><th>Status</th></tr></thead><tbody><tr><td><strong>Vendor renewal above market</strong><br>Brandel Risk</td><td>$2.45M</td><td><span class="pill high">Open</span></td></tr><tr><td><strong>Unused SaaS licenses</strong></td><td>$1.15M</td><td><span class="pill medium">In progress</span></td></tr></tbody></table></section><aside class="panel"><div class="panel-head"><h3>Report Summary</h3></div><div class="rail-list"><article><strong>Evidence coverage 68%</strong><em>95 of 140 records</em></article><article><strong>Board-ready</strong><em>All required approvals included.</em></article><article><strong>Included approvals</strong><em>6 of 6</em></article><article><strong>Key risks</strong><em>7 high • 12 medium • 5 low</em></article></div></aside></div></div><footer class="footer"><span><i class="dot"></i>Report builder Healthy</span></footer></div></section>
+
+    <section class="screen" id="support"><aside class="side"></aside><div class="main"><div class="topbar"><div class="title"><h2>Support / FAQ</h2><p>Get help, learn product capabilities, and manage your support requests.</p></div><div class="statusbar"><span><i class="dot"></i>Gemini Ready</span><span><i class="dot"></i>Supabase</span><span><i class="dot"></i>Docs coverage 92%</span></div><div class="avatar">AR</div></div><div class="content"><div class="kpis six"><div class="metric"><div class="ring" style="--pct:100%">✓</div><div><span>System status</span><strong>Operational</strong><em>100% uptime</em></div></div><div class="metric info"><div class="ring" style="--pct:98%">98</div><div><span>AI provider</span><strong>Gemini 1.5 Pro</strong><em>Healthy</em></div></div><div class="metric"><div class="ring" style="--pct:96%">96</div><div><span>Pipeline health</span><strong>96%</strong><em>No delays</em></div></div><div class="metric"><div class="ring" style="--pct:72%">18m</div><div><span>Avg response</span><strong>18m</strong><em>Live support</em></div></div><div class="metric warn"><div class="ring" style="--pct:50%">3</div><div><span>Open tickets</span><strong>3</strong><em>2 urgent</em></div></div><div class="metric"><div class="ring" style="--pct:92%">92</div><div><span>Docs coverage</span><strong>92%</strong><em>Help docs</em></div></div></div><div class="grid-3"><aside class="panel"><div class="panel-head"><h3>Search support articles</h3></div><div class="toolbar"><input class="input" value="Search articles, topics, or ask a question..."></div><div class="rail-list"><article><strong>Getting Started</strong><em>12 articles</em></article><article><strong>Data Uploads</strong><em>18 articles</em></article><article><strong>Evidence Graph</strong><em>14 articles</em></article><article><strong>Diagnostics</strong><em>16 articles</em></article><article><strong>Agents</strong><em>17 articles</em></article><article><strong>Approvals</strong><em>12 articles</em></article></div></aside><section class="panel"><div class="panel-head"><h3>How GENIUS turns evidence into decisions</h3><button class="btn">Follow</button></div><div class="graph" style="grid-template-columns:repeat(6,1fr)"><div class="node green"><strong>Upload Evidence</strong><em>Files, URLs, screenshots</em></div><div class="node blue"><strong>Extract Facts</strong><em>AI reads metadata</em></div><div class="node green"><strong>Diagnostics</strong><em>Find risks</em></div><div class="node purple"><strong>Agent Draft</strong><em>Action rationale</em></div><div class="node amber"><strong>Human Approval</strong><em>Review/edit/approve</em></div><div class="node blue"><strong>Board Report</strong><em>Proof trails</em></div></div><div class="rail-list"><article><strong>Which AI provider does GENIUS use?</strong><em>GENIUS is powered by Google Gemini 1.5 Pro through secure endpoints. Fallback states are visible.</em></article><article><strong>Why is GENIUS approval-first?</strong><em>Agents prepare actions. Humans approve before any execution.</em></article><article><strong>What does GENIUS not do?</strong><em>No autonomous external execution in MVP. CRM, billing, mobile, and marketplace are Demo/Locked.</em></article></div></section><aside class="panel"><div class="panel-head"><h3>Live Support</h3><a>View my tickets</a></div><div class="rail-list"><input class="input" value="Need help with vendor contract approval"><textarea class="input" style="min-height:90px;padding:10px">I'm unsure why the approval is blocked. Can you help?</textarea><button class="btn primary">Create ticket</button><article><strong>support@genius.ai</strong><em>Reply within business hours</em></article><article><strong>Security & Compliance</strong><em>Supabase storage, RLS, audit logs, deletion on request.</em></article></div></aside></div></div><footer class="footer"><span><i class="dot"></i>Support Healthy</span></footer></div></section>
+
+    <section class="screen" id="settings"><aside class="side"></aside><div class="main"><div class="topbar"><div class="title"><h2>Settings / Security & Data</h2><p>Manage security, data protection, and compliance for your workspace.</p></div><div class="statusbar"><span><i class="dot"></i>Gemini Ready</span><span><i class="dot"></i>Supabase</span><span><i class="dot"></i>Data quality 84%</span><span>Last sync 2m ago</span></div><div class="avatar">AR</div></div><div class="content"><div class="kpis eight"><div class="metric"><div class="ring" style="--pct:98%">98</div><div><span>Account security</span><strong>98%</strong><em>Excellent</em></div></div><div class="metric"><div class="ring" style="--pct:96%">96</div><div><span>Workspace health</span><strong>96%</strong><em>Healthy</em></div></div><div class="metric info"><div class="ring" style="--pct:92%">AI</div><div><span>Provider status</span><strong>Ready</strong><em>Gemini</em></div></div><div class="metric info"><div class="ring" style="--pct:29%">148</div><div><span>Storage usage</span><strong>148 GB</strong><em>of 500 GB</em></div></div><div class="metric"><div class="ring" style="--pct:70%">180</div><div><span>Data retention</span><strong>180 days</strong><em>Active policy</em></div></div><div class="metric"><div class="ring" style="--pct:60%">12</div><div><span>Active connectors</span><strong>12 / 20</strong><em>Healthy</em></div></div><div class="metric"><div class="ring" style="--pct:100%">On</div><div><span>Agent guardrails</span><strong>Strict</strong><em>Enforced</em></div></div><div class="metric warn"><div class="ring" style="--pct:40%">3</div><div><span>Locked modes</span><strong>3</strong><em>See details</em></div></div></div><div class="settings-layout"><aside class="panel settings-menu"><div>Account</div><div>Workspace</div><div>Auth & Login</div><div>AI Provider</div><div class="active">Security & Data</div><div>Notifications</div><div>Connectors</div><div>Agent Guardrails</div><div>Feature Modes</div><div>Billing</div></aside><section class="panel"><div class="panel-head"><h3>Security & Data Protection</h3><button class="btn">View compliance guide</button></div><div class="panel pad"><h3>Data & Access Controls</h3><div class="toggle-row"><div><strong>Row Level Security (RLS)</strong><br><span class="label">Restrict data by role and ownership</span></div><div class="toggle"></div><button class="btn">Configure</button></div><div class="toggle-row"><div><strong>Audit logging</strong><br><span class="label">Log all user and system events</span></div><div class="toggle"></div><button class="btn">Configure</button></div><div class="toggle-row"><div><strong>Restrict data export</strong><br><span class="label">Require approval for sensitive data</span></div><div class="toggle"></div><button class="btn">Configure</button></div><div class="toggle-row"><div><strong>Data masking (PII)</strong><br><span class="label">Mask PII in exports and reports</span></div><div class="toggle"></div><button class="btn">Configure</button></div></div><div class="panel pad" style="margin:10px"><h3>Data Retention & Deletion</h3><div class="toolbar" style="padding:0"><button class="btn">180 days (6 months)</button><button class="btn">30 days grace period</button><button class="btn primary">Save changes</button><button class="btn">Export workspace data</button><button class="btn red">Delete workspace data</button></div></div><div class="panel-head"><h3>Audit log</h3><a>View full audit log</a></div><table><tbody><tr><td>May 24, 10:42 AM</td><td>Alex Rivera</td><td><span class="pill blue">Updated</span></td><td>Security settings</td><td>Retention period changed</td></tr><tr><td>May 24, 10:41 AM</td><td>Sarah Green</td><td><span class="pill low">Enabled</span></td><td>Audit logging</td><td>Audit logging enabled</td></tr></tbody></table></section><aside class="panel"><div class="panel-head"><h3>Workspace Summary</h3><button class="btn">Edit</button></div><div class="rail-list"><article><strong>Acme Corporation</strong><em>Owner Alex Rivera • Plan MVP</em></article><article><strong>System Connections</strong><em>Supabase connected • Gemini ready • Storage healthy</em></article><article><strong>Security Checklist</strong><em>2FA enabled • RLS enabled • Audit logging enabled • Retention compliant</em></article><article><strong>Feature Modes</strong><em>Genius Deep Locked • Genius Audit Locked • CRM Layer Demo • Excel AI Active</em></article></div></aside></div></div><footer class="footer"><span><i class="dot"></i>Security controls Active</span></footer></div></section>
+  </main>
+  <script>
+    const nav = ["Command Center","AI Chat","Data Intake","Diagnostics","Savings Radar","Agents","Approvals","Excel Workspace","Connectors","Reports","Support / FAQ","Settings"];
+    const future = ["Full CRM Layer","Contract Repository","Native Mobile App","Multi-Business OS","Billing","Marketplace Extensions"];
+    document.querySelectorAll(".screen:not(.auth-screen) .side").forEach((side) => {
+      const active = side.getAttribute("data-active") || side.closest(".screen").querySelector(".title h2")?.textContent || "Command Center";
+      side.innerHTML = `
+        <div class="brand"><span class="logo">G</span> GENIUS.</div>
+        <div class="workspace"><span class="label">Workspace</span><strong>Acme Corporation</strong><em>84% mapped</em></div>
+        <nav class="nav">${nav.map((item) => `<button class="${active.includes(item.split(" ")[0]) || (item === "Command Center" && active === "Command Center") ? "active" : ""}"><i>${item.split(" ").map(w => w[0]).join("").slice(0,2)}</i><span>${item}</span>${item==="Approvals" ? "<b class='badge'>8</b>" : ""}</button>`).join("")}</nav>
+        <div class="future"><span class="label">Roadmap after MVP</span>${future.map((item) => `<div class="future-row"><span>${item}</span><em>Demo</em></div>`).join("")}<div class="future-row"><span>Autonomous execution</span><em class="locked">Locked</em></div><div class="future-row"><span>Genius Deep</span><em class="locked">Locked</em></div><div class="future-row"><span>Genius Audit</span><em class="locked">Locked</em></div></div>
+        <div style="margin-top:auto" class="user-card"><strong>Alex Rivera</strong><em>admin@acme.com</em></div>
+        <div class="status-card"><span class="label">System status</span><div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;font-size:11px;color:var(--text-soft)"><span><i class="dot"></i> Data pipeline</span><span><i class="dot"></i> Healthy</span><span><i class="dot"></i> AI extraction</span><span><i class="dot"></i> Healthy</span><span><i class="dot"></i> Approval</span><span><i class="dot"></i> Healthy</span></div></div>
+      `;
+    });
+    const requestedScreen = new URLSearchParams(window.location.search).get("screen");
+    if (requestedScreen) {
+      const target = document.getElementById(requestedScreen);
+      if (target) {
+        document.querySelector(".board").classList.add("focus");
+        target.classList.add("focus-target");
+      }
+    }
+  </script>
+</body>
+</html>

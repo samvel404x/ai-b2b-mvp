@@ -47,8 +47,8 @@ export function StatePill({ state }) {
 const dotTone = {
   online: "bg-primary", connected: "bg-primary", healthy: "bg-primary",
   ok: "bg-primary", Connected: "bg-primary", Active: "bg-primary",
-  Degraded: "bg-warning", retry: "bg-warning", Idle: "bg-[#5a6660]",
-  Paused: "bg-warning", offline: "bg-critical", "Not connected": "bg-[#3a4040]",
+  Degraded: "bg-warning", retry: "bg-warning", Idle: "bg-[#68737D]",
+  Paused: "bg-warning", offline: "bg-critical", "Not connected": "bg-[#68737D]",
   Waiting: "bg-warning", Blocked: "bg-critical",
 };
 

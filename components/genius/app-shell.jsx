@@ -1,33 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   AlertCircle,
   Bell,
   Bot,
   ChevronDown,
-  CircleDot,
   Cpu,
   Database,
   FileSpreadsheet,
   GitBranch,
   HelpCircle,
-  Home,
-  LayoutDashboard,
-  Lock,
+  KeyRound,
+  LogOut,
   MessageSquare,
+  Moon,
   Plug,
   RefreshCw,
   Search,
   Settings,
   ShieldCheck,
   Sparkles,
+  Sun,
   Target,
-  TrendingDown,
-  TrendingUp,
   Upload,
   User,
-  Zap,
+  X,
+  LayoutDashboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { workspace } from "@/lib/genius-data";
@@ -86,64 +85,136 @@ const mainNav = [
   { id: "reports", label: "Reports", icon: GitBranch },
 ];
 
-const roadmapNav = [
-  { id: "crm", label: "CRM Layer", tag: "Demo" },
-  { id: "contracts", label: "Contract Repository", tag: "Demo" },
-  { id: "mobile", label: "Native Mobile App", tag: "Demo" },
-  { id: "multi", label: "Multi-Business OS", tag: "Demo" },
-  { id: "billing", label: "Billing", tag: null },
-  { id: "marketplace", label: "Marketplace Extensions", tag: "Demo" },
-  { id: "autonomous", label: "Autonomous Execution", tag: "Locked" },
-  { id: "deep", label: "Genius Deep", tag: "Locked" },
-  { id: "audit", label: "Genius Audit", tag: "Locked" },
-];
+/* ── Search overlay ────────────────────────────────────────────────────── */
+function SearchOverlay({ open, onClose }) {
+  const inputRef = useRef(null);
+  const [query, setQuery] = useState("");
 
-const systemStatus = [
-  { label: "Data pipeline", status: "Healthy" },
-  { label: "AI extraction", status: "Healthy" },
-  { label: "Agent runtime", status: "Healthy" },
-  { label: "Approval service", status: "Healthy" },
-  { label: "Connectors", status: "Healthy" },
-];
+  useEffect(() => {
+    if (open) {
+      inputRef.current?.focus();
+      setQuery("");
+    }
+  }, [open]);
 
-function NavItem({ item, active, onClick }) {
-  const Icon = item.icon;
-  const isActive = active === item.id;
+  useEffect(() => {
+    function onKey(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        onClose();
+      }
+      if (e.key === "Escape" && open) onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const suggestions = [
+    "Renewal risk summary",
+    "Spend leakage by vendor",
+    "Open approvals",
+    "Microsoft EA contract",
+    "Q4 forecast variance",
+  ].filter((s) => !query || s.toLowerCase().includes(query.toLowerCase()));
+
   return (
-    <button
-      type="button"
-      onClick={() => onClick(item.id)}
-      className={cn(
-        "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium transition-all duration-150",
-        isActive
-          ? "bg-primary/12 text-primary"
-          : "text-[#8a9490] hover:bg-white/5 hover:text-[#c8d4cf]",
-      )}
-    >
-      {Icon && (
-        <Icon
-          className={cn(
-            "size-4 shrink-0 transition-colors",
-            isActive ? "text-primary" : "text-[#5a6660] group-hover:text-[#8a9490]",
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-lg animate-scale-in rounded-xl border border-[#1E2730] bg-[#0E1418] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 border-b border-[#1E2730] px-4 py-3">
+          <Search className="size-4 text-[#68737D]" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search findings, evidence, actions..."
+            className="flex-1 bg-transparent text-sm text-[#F4F7F8] placeholder-[#68737D] outline-none"
+          />
+          <kbd className="rounded border border-[#243039] bg-[#11171C] px-1.5 py-0.5 text-[10px] text-[#68737D]">ESC</kbd>
+        </div>
+        <div className="max-h-64 overflow-y-auto p-2">
+          {suggestions.length === 0 ? (
+            <p className="px-3 py-4 text-center text-sm text-[#68737D]">No results found</p>
+          ) : (
+            suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-[#A7B0B8] transition-colors hover:bg-[#182128] hover:text-[#F4F7F8]"
+                onClick={onClose}
+              >
+                <Search className="size-3.5 text-[#68737D]" />
+                {s}
+              </button>
+            ))
           )}
-        />
-      )}
-      <span className="flex-1 truncate">{item.label}</span>
-      {item.badge ? (
-        <span className="flex size-5 items-center justify-center rounded-full bg-warning text-[10px] font-bold text-warning-foreground">
-          {item.badge}
-        </span>
-      ) : null}
-      {isActive && (
-        <span className="size-1.5 rounded-full bg-primary" />
-      )}
-    </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
+/* ── Notification panel ────────────────────────────────────────────────── */
+function NotificationPanel({ open, onClose }) {
+  if (!open) return null;
+
+  const notifications = [
+    { id: 1, title: "Microsoft EA renewal due in 12 days", desc: "Contract Analyst flagged renewal window.", time: "2m ago", type: "critical", read: false },
+    { id: 2, title: "298 unused SaaS licenses detected", desc: "Spend Auditor found idle seats across 4 tools.", time: "18m ago", type: "warning", read: false },
+    { id: 3, title: "Invoice mismatch on INV-2291", desc: "18% variance detected vs contract rate.", time: "41m ago", type: "warning", read: false },
+    { id: 4, title: "Q2 savings proof pack ready", desc: "Report Builder prepared 12 findings.", time: "3h ago", type: "primary", read: true },
+    { id: 5, title: "Connector sync completed", desc: "All 18 sources synced successfully.", time: "5h ago", type: "primary", read: true },
+  ];
+
+  const typeDot = { critical: "bg-[#EF4444]", warning: "bg-[#F59E0B]", primary: "bg-[#22C55E]" };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="absolute right-0 top-full z-50 mt-2 w-96 animate-scale-in rounded-xl border border-[#1E2730] bg-[#0E1418] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[#1E2730] px-4 py-3">
+          <span className="text-sm font-semibold text-[#F4F7F8]">Notifications</span>
+          <button type="button" onClick={onClose} className="text-[#68737D] transition-colors hover:text-[#F4F7F8]">
+            <X className="size-4" />
+          </button>
+        </div>
+        <div className="max-h-80 overflow-y-auto scrollbar-thin">
+          {notifications.map((n) => (
+            <div
+              key={n.id}
+              className={cn(
+                "flex gap-3 border-b border-[#1E2730]/50 px-4 py-3 transition-colors hover:bg-[#182128]",
+                !n.read && "bg-[#141B21]/50",
+              )}
+            >
+              <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", typeDot[n.type])} />
+              <div className="min-w-0 flex-1">
+                <p className={cn("text-sm leading-snug", n.read ? "text-[#A7B0B8]" : "font-medium text-[#F4F7F8]")}>{n.title}</p>
+                <p className="mt-0.5 text-xs text-[#68737D]">{n.desc}</p>
+                <span className="mt-1 text-[10px] text-[#68737D]">{n.time}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-[#1E2730] px-4 py-2.5 text-center">
+          <button type="button" className="text-xs font-medium text-[#0EA5E9] transition-colors hover:text-[#38BDF8]">
+            View all notifications
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ── Status bar ────────────────────────────────────────────────────────── */
 function StatusBar() {
   return (
-    <div className="flex items-center gap-3 overflow-x-auto border-b border-[#ffffff08] bg-[#030404] px-4 py-1.5">
+    <div className="flex items-center gap-4 overflow-x-auto border-b border-[#1E2730]/50 bg-[#080A0C] px-5 py-1.5">
       {[
         { icon: Cpu, label: "Provider", value: workspace.provider.name, dot: "online" },
         { icon: Database, label: "Database", value: workspace.database.name, dot: "connected" },
@@ -152,214 +223,233 @@ function StatusBar() {
         { icon: RefreshCw, label: "Last sync", value: "2m ago" },
       ].map(({ icon: Icon, label, value, dot }) => (
         <div key={label} className="flex shrink-0 items-center gap-2 py-0.5">
-          {dot ? <StatusDot tone={dot} /> : <Icon className="size-3 text-[#4a5450]" />}
-          <span className="text-[11px] text-[#4a5450]">{label}</span>
-          <span className="text-[11px] font-medium text-[#8a9490]">{value}</span>
+          {dot ? <StatusDot tone={dot} /> : <Icon className="size-3 text-[#68737D]" />}
+          <span className="text-[11px] text-[#68737D]">{label}</span>
+          <span className="text-[11px] font-medium text-[#A7B0B8]">{value}</span>
         </div>
       ))}
       <div className="ml-auto flex items-center gap-1.5 shrink-0">
         <span className="relative flex size-1.5">
-          <span className="absolute inline-flex size-1.5 animate-ping rounded-full bg-primary opacity-60" />
-          <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
+          <span className="absolute inline-flex size-1.5 animate-ping rounded-full bg-[#22C55E] opacity-50" />
+          <span className="relative inline-flex size-1.5 rounded-full bg-[#22C55E]" />
         </span>
-        <span className="text-[11px] text-primary font-medium">Auto-refresh</span>
-        <RefreshCw className="size-3 text-primary" />
+        <span className="text-[11px] font-medium text-[#22C55E]">Auto-refresh</span>
       </div>
     </div>
   );
 }
 
+/* ── Main App Shell ────────────────────────────────────────────────────── */
 export default function AppShell() {
   const [active, setActive] = useState("command");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const navRef = useRef(null);
   const ActiveSection = sectionComponents[active] || CommandCenter;
 
+  const toggleSearch = useCallback(() => setSearchOpen((p) => !p), []);
+
+  // Keyboard shortcut for search
+  useEffect(() => {
+    function onKey(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Scroll active nav item into view
+  useEffect(() => {
+    const navEl = navRef.current;
+    if (!navEl) return;
+    const activeBtn = navEl.querySelector(`[data-nav-id="${active}"]`);
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    }
+  }, [active]);
+
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#050607]">
-      {/* Top header */}
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-[#ffffff08] bg-[#07080a] px-4">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#080A0C]">
+      {/* ── Top Header ──────────────────────────────────────────── */}
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-[#1E2730]/60 bg-[#0B0F12] px-5">
         {/* Brand */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className="glow-primary flex size-7 items-center justify-center rounded-lg bg-primary">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-[#22C55E]" style={{ boxShadow: "0 0 12px rgba(34,197,94,0.25)" }}>
               <Sparkles className="size-3.5 text-[#03110a]" />
             </div>
-            <span className="text-sm font-semibold tracking-tight text-foreground">GENIUS.</span>
+            <span className="text-sm font-semibold tracking-tight text-[#F4F7F8]">GENIUS</span>
           </div>
-          <span className="hidden rounded-full border border-primary/20 bg-primary/8 px-2 py-0.5 text-[10px] font-medium text-primary sm:inline">
+          <span className="hidden rounded border border-[#22C55E]/20 bg-[#22C55E]/8 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-[#22C55E] sm:inline">
             AI-BACKED OPS
           </span>
         </div>
 
-        {/* Center: workspace selector */}
-        <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center gap-2 rounded-md border border-[#ffffff08] bg-[#0d0f0e] px-3 py-1.5 text-xs font-medium text-[#8a9490] transition-colors hover:border-[#1a1f1d] hover:text-foreground">
-            <span className="size-1.5 rounded-full bg-primary" />
-            {workspace.name}
-            <ChevronDown className="size-3" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" className="w-52">
-            <DropdownMenuLabel className="text-xs text-muted-foreground">Workspace</DropdownMenuLabel>
-            <DropdownMenuItem className="text-sm font-medium">
-              <span className="size-1.5 rounded-full bg-primary mr-2" />
-              {workspace.name}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Right controls */}
+        <div className="flex items-center gap-1.5">
+          {/* AI Provider selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="hidden items-center gap-1.5 rounded-md border border-[#1E2730] bg-[#11171C] px-2.5 py-1.5 text-[11px] font-medium text-[#A7B0B8] transition-colors hover:border-[#2C3842] hover:text-[#F4F7F8] md:flex">
+              <Cpu className="size-3" />
+              {workspace.provider.name}
+              <ChevronDown className="size-3 text-[#68737D]" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel className="text-xs text-[#68737D]">AI Provider</DropdownMenuLabel>
+              <DropdownMenuItem className="text-sm">
+                <span className="mr-2 size-1.5 rounded-full bg-[#22C55E]" />Gemini 1.5 Pro
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-sm">GPT-4o</DropdownMenuItem>
+              <DropdownMenuItem className="text-sm">Claude 3.5 Sonnet</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        {/* Right */}
-        <div className="flex items-center gap-2">
           {/* Search */}
-          <div className="relative hidden md:flex items-center">
-            <Search className="absolute left-2.5 size-3 text-[#4a5450]" />
-            <input
-              placeholder="Search anything…"
-              className="h-7 w-48 rounded-md border border-[#ffffff08] bg-[#0d0f0e] pl-8 pr-3 text-xs text-[#8a9490] placeholder-[#3a4040] outline-none transition-all focus:border-[#1a2820] focus:w-56 focus:text-foreground"
-            />
-            <span className="absolute right-2.5 text-[10px] text-[#3a4040]">⌘K</span>
-          </div>
-
-          {/* Notifications */}
-          <button type="button" className="relative flex size-7 items-center justify-center rounded-md text-[#5a6660] transition-colors hover:bg-white/5 hover:text-foreground">
-            <Bell className="size-4" />
-            <span className="absolute right-1 top-1 flex size-3.5 items-center justify-center rounded-full bg-critical text-[8px] font-bold text-white">8</span>
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="flex items-center gap-2 rounded-md border border-[#1E2730] bg-[#11171C] px-3 py-1.5 text-[11px] text-[#68737D] transition-colors hover:border-[#2C3842] hover:text-[#A7B0B8]"
+          >
+            <Search className="size-3" />
+            <span className="hidden sm:inline">Search anything...</span>
+            <kbd className="hidden rounded border border-[#243039] bg-[#0E1418] px-1 py-0.5 text-[9px] text-[#68737D] sm:inline">⌘K</kbd>
           </button>
 
-          <button type="button" className="flex size-7 items-center justify-center rounded-md text-[#5a6660] transition-colors hover:bg-white/5 hover:text-foreground" onClick={() => setActive("support")}>
+          {/* Notifications */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setNotifOpen(!notifOpen)}
+              className="relative flex size-8 items-center justify-center rounded-md text-[#68737D] transition-colors hover:bg-[#182128] hover:text-[#F4F7F8]"
+            >
+              <Bell className="size-4" />
+              <span className="absolute right-1 top-1 flex size-3.5 items-center justify-center rounded-full bg-[#EF4444] text-[8px] font-bold text-white">
+                3
+              </span>
+            </button>
+            <NotificationPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
+          </div>
+
+          {/* Help */}
+          <button
+            type="button"
+            className="flex size-8 items-center justify-center rounded-md text-[#68737D] transition-colors hover:bg-[#182128] hover:text-[#F4F7F8]"
+            onClick={() => setActive("support")}
+          >
             <HelpCircle className="size-4" />
           </button>
 
-          {/* User */}
+          {/* User menu */}
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-[#8a9490] transition-colors hover:bg-white/5 hover:text-foreground">
+            <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-[#A7B0B8] transition-colors hover:bg-[#182128] hover:text-[#F4F7F8]">
               <Avatar className="size-6">
-                <AvatarFallback className="bg-[#16211b] text-[10px] font-semibold text-primary">AR</AvatarFallback>
+                <AvatarFallback className="bg-[#182128] text-[10px] font-semibold text-[#22C55E]">AR</AvatarFallback>
               </Avatar>
-              <span className="hidden sm:inline">Alex Rivera</span>
-              <ChevronDown className="size-3" />
+              <span className="hidden font-medium sm:inline">Alex Rivera</span>
+              <ChevronDown className="size-3 text-[#68737D]" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
-                <div className="flex flex-col">
-                  <span className="text-sm">Alex Rivera</span>
-                  <span className="text-xs font-normal text-muted-foreground">Owner</span>
+                <div className="flex items-center gap-3">
+                  <Avatar className="size-9">
+                    <AvatarFallback className="bg-[#182128] text-sm font-semibold text-[#22C55E]">AR</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-[#F4F7F8]">Alex Rivera</span>
+                    <span className="text-xs font-normal text-[#68737D]">alex@acmecorp.io</span>
+                  </div>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => setActive("profile")}>Profile</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActive("settings")}>Settings</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActive("support")}>Support</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActive("profile")}>
+                  <User className="mr-2 size-3.5" />Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActive("settings")}>
+                  <Settings className="mr-2 size-3.5" />Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActive("support")}>
+                  <HelpCircle className="mr-2 size-3.5" />Support & FAQ
+                </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-critical">Sign out</DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuItem>
+                  <KeyRound className="mr-2 size-3.5" />API keys
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-[#EF4444] focus:text-[#EF4444]">
+                <LogOut className="mr-2 size-3.5" />Sign out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </header>
 
-      {/* Status bar */}
+      {/* ── Horizontal Navigation ───────────────────────────────── */}
+      <nav className="shrink-0 border-b border-[#1E2730]/60 bg-[#0B0F12]">
+        <div
+          ref={navRef}
+          className="flex items-center gap-0.5 overflow-x-auto px-5 scrollbar-thin"
+        >
+          {mainNav.map((item) => {
+            const isActive = active === item.id;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                data-nav-id={item.id}
+                onClick={() => setActive(item.id)}
+                className={cn(
+                  "relative flex shrink-0 items-center gap-1.5 px-3 py-2.5 text-[13px] font-medium transition-colors",
+                  isActive
+                    ? "text-[#F4F7F8]"
+                    : "text-[#68737D] hover:text-[#A7B0B8]",
+                )}
+              >
+                <Icon className={cn("size-3.5", isActive ? "text-[#22C55E]" : "text-[#68737D]")} />
+                {item.label}
+                {item.badge && (
+                  <span className="flex size-4.5 items-center justify-center rounded-full bg-[#F59E0B] text-[9px] font-bold text-[#0B0F12]">
+                    {item.badge}
+                  </span>
+                )}
+                {/* Active indicator line */}
+                {isActive && (
+                  <span
+                    className="absolute inset-x-1 bottom-0 h-[2px] rounded-full bg-[#22C55E]"
+                    style={{ boxShadow: "0 1px 8px rgba(34,197,94,0.3)" }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* ── Status Bar ──────────────────────────────────────────── */}
       <StatusBar />
 
-      {/* Main layout: sidebar + content */}
-      <div className="flex min-h-0 flex-1">
-        {/* Sidebar */}
-        <aside className="flex w-[200px] shrink-0 flex-col overflow-hidden border-r border-[#ffffff08] bg-[#07080a]">
-          {/* Workspace label */}
-          <div className="px-4 pb-1 pt-3">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-[#3a4040]">Workspace</span>
-          </div>
+      {/* ── Content ─────────────────────────────────────────────── */}
+      <main className="flex-1 overflow-y-auto scrollbar-thin bg-[#080A0C]">
+        <div
+          key={active}
+          className="mx-auto w-full max-w-[1600px] animate-fade-in p-5"
+        >
+          <ActiveSection
+            label={mainNav.find((n) => n.id === active)?.label || active.charAt(0).toUpperCase() + active.slice(1)}
+            onNavigate={setActive}
+          />
+        </div>
+      </main>
 
-          {/* Workspace pill */}
-          <div className="px-2 pb-2">
-            <button type="button" className="flex w-full items-center justify-between rounded-lg border border-[#ffffff06] bg-[#0d0f0e] px-3 py-2 text-xs font-medium text-[#8a9490] hover:border-[#1a1f1d] hover:text-foreground transition-colors">
-              <span className="truncate">{workspace.name}</span>
-              <ChevronDown className="size-3 shrink-0" />
-            </button>
-          </div>
-
-          {/* Main nav */}
-          <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 py-1">
-            <div className="flex flex-col gap-0.5">
-              {mainNav.map((item) => (
-                <NavItem key={item.id} item={item} active={active} onClick={setActive} />
-              ))}
-            </div>
-
-            {/* Roadmap section */}
-            <div className="mt-4">
-              <div className="px-3 pb-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-[#3a4040]">Roadmap & Future</span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                {roadmapNav.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between rounded-lg px-3 py-1.5 text-sm text-[#4a5450]"
-                  >
-                    <span className="truncate text-xs">{item.label}</span>
-                    {item.tag && (
-                      <span className={cn(
-                        "shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
-                        item.tag === "Demo" && "bg-primary/10 text-primary",
-                        item.tag === "Locked" && "bg-[#1a1f1d] text-[#3a4040]",
-                      )}>
-                        {item.tag}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </nav>
-
-          {/* User profile */}
-          <div className="border-t border-[#ffffff08] p-2">
-            <button
-              type="button"
-              onClick={() => setActive("profile")}
-              className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-white/5"
-            >
-              <Avatar className="size-7 shrink-0">
-                <AvatarFallback className="bg-[#16211b] text-[10px] font-semibold text-primary">AR</AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-medium text-[#c8d4cf]">Alex Rivera</p>
-                <p className="text-[10px] text-[#4a5450]">Owner</p>
-              </div>
-            </button>
-
-            {/* System status */}
-            <div className="mt-2 rounded-lg border border-[#ffffff06] bg-[#0d0f0e] px-3 py-2">
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#3a4040]">System status</p>
-              <div className="flex flex-col gap-1">
-                {systemStatus.map((s) => (
-                  <div key={s.label} className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-[10px] text-[#4a5450]">
-                      <span className="size-1.5 rounded-full bg-primary" />
-                      {s.label}
-                    </span>
-                    <span className="text-[10px] text-primary">{s.status}</span>
-                  </div>
-                ))}
-              </div>
-              <button type="button" onClick={() => setActive("support")} className="mt-1.5 text-[10px] text-[#3a4040] hover:text-[#5a6660] transition-colors">
-                Need help? Visit Support / FAQ
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto scrollbar-thin bg-[#050607]">
-          <div
-            key={active}
-            className="mx-auto w-full max-w-[1600px] animate-fade-in p-5"
-          >
-            <ActiveSection label={mainNav.find(n => n.id === active)?.label || ""} onNavigate={setActive} />
-          </div>
-        </main>
-      </div>
+      {/* ── Search overlay ──────────────────────────────────────── */}
+      <SearchOverlay open={searchOpen} onClose={toggleSearch} />
     </div>
   );
 }

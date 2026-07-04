@@ -1,0 +1,5 @@
+docs/design/
+qa-*.png
+.chrome-qa-profile/
+.data/
+.next/
