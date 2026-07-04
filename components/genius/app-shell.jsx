@@ -439,7 +439,7 @@ export default function AppShell() {
       <main className="flex-1 overflow-y-auto scrollbar-thin bg-[#080A0C]">
         <div
           key={active}
-          className="mx-auto w-full max-w-[1600px] animate-fade-in p-5"
+          className="w-full animate-fade-in px-5 py-5"
         >
           <ActiveSection
             label={mainNav.find((n) => n.id === active)?.label || active.charAt(0).toUpperCase() + active.slice(1)}
