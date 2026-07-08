@@ -3,730 +3,684 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-  Check, X, Clock, ChevronDown, SlidersHorizontal, ArrowUpRight,
-  ArrowDownRight, ExternalLink, Bot, FileText, ChevronLeft,
-  ChevronRight, Maximize2, LayoutGrid, CheckCircle2, Circle,
-  AlertCircle, Bold, Italic, Underline, Link2, List, ListOrdered,
+  Download,
+  SlidersHorizontal,
+  Check,
+  X,
+  AlertCircle,
+  ArrowUpRight,
+  ArrowDownRight,
+  ChevronDown,
+  LayoutGrid,
+  Search,
+  CheckCircle2,
+  FileText,
+  Clock,
+  Maximize2,
+  MoreHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  AlertTriangle,
+  Bold, Italic, Underline, List, Type, PenTool, Link2, AlignLeft,
+  Filter, ArrowRight
 } from "lucide-react";
-import {
-  approvalsKpis,
-  approvalsQueue,
-  approvalsDetail,
-  approvalsInsights,
-} from "@/lib/genius-data";
-import { Ring, Sparkline, SeverityBadge, PageHeader } from "../shared";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 
-// ── Tone helpers ──────────────────────────────────────────────────────────────
+import { approvalsKpis, approvalsQueue, approvalsDetail, approvalsInsights } from "@/lib/genius-data";
+import {
+  Panel,
+  SeverityBadge,
+  ConfBar,
+  Ring,
+  Sparkline,
+  StatusDot
+} from "../shared";
+
 const toneText = {
-  primary:  "text-primary",
-  critical: "text-critical",
-  warning:  "text-warning",
-  evidence: "text-evidence",
-  neutral:  "text-foreground",
+  primary: "text-primary", critical: "text-critical",
+  evidence: "text-evidence", warning: "text-warning", neutral: "text-white",
 };
+
 const toneStroke = {
-  primary:  "var(--primary)",
-  critical: "var(--critical)",
-  warning:  "var(--warning)",
-  evidence: "var(--evidence)",
-  neutral:  "var(--muted-foreground)",
+  primary: "var(--primary)", critical: "var(--critical)",
+  evidence: "var(--evidence)", warning: "var(--warning)", neutral: "rgba(255,255,255,0.2)",
 };
 
-const statusStyles = {
-  "Urgent":   "bg-critical/12 text-critical border-critical/25",
-  "Due soon": "bg-warning/12 text-warning border-warning/25",
-  "Review":   "bg-evidence/10 text-evidence border-evidence/20",
-  "Snoozed":  "bg-white/5 text-[#5a6660] border-white/8",
-};
+function ApprovalPill({ state }) {
+  const s = {
+    Open: "text-white",
+    "Due soon": "text-warning",
+    Urgent: "text-critical",
+    Review: "text-[#3b82f6]",
+    Snoozed: "text-[#3b82f6]",
+  }[state] || "text-muted-foreground";
+  
+  return (
+    <span className={cn("text-[10px] font-bold uppercase tracking-widest whitespace-nowrap", s)}>
+      {state}
+    </span>
+  );
+}
 
-const tabList = ["Overview", "Evidence (12)", "Impact", "Timeline", "Related (4)"];
-
-// ── KPI Card ──────────────────────────────────────────────────────────────────
 function KpiCard({ kpi, index }) {
-  const trendUp   = kpi.trendDir === "up";
+  const trendUp = kpi.trendDir === "up";
   const trendDown = kpi.trendDir === "down";
-  const confColor = kpi.confidence === "High" ? "text-primary" : kpi.confidence === "Medium" ? "text-warning" : "text-critical";
+
   return (
     <div
-      className={cn(
-        "group relative flex flex-col gap-2 overflow-hidden rounded-xl border border-[#ffffff08] bg-[#0a0c0b] p-3 transition-all duration-200 hover:border-[#1a2820] hover:bg-[#0d0f0e] animate-fade-up",
-        `stat-accent-${kpi.tone}`,
-      )}
+      className="group relative flex flex-col gap-2 overflow-hidden rounded-xl border border-[#1E2730] bg-[#0A0C0B] p-3 transition-all hover:bg-[#141B21] min-w-[160px] flex-1 animate-fade-up"
       style={{ animationDelay: `${index * 40}ms` }}
     >
       <div className="flex items-center gap-2">
-        <Ring value={kpi.ring} size={36} stroke={toneStroke[kpi.tone]} />
-        <div className="min-w-0">
-          <p className="text-[10px] font-medium text-[#4a5450] leading-snug truncate">{kpi.label}</p>
-          <p className={cn("text-base font-bold tabular leading-tight", toneText[kpi.tone])}>{kpi.value}</p>
+        <Ring value={kpi.ring} size={36} stroke={`var(--${kpi.tone})`} />
+        <div className="flex flex-col gap-0 min-w-0">
+          <span className="truncate text-[10px] font-semibold uppercase tracking-widest text-muted-foreground leading-snug">
+            {kpi.label}
+          </span>
+          <span className="text-lg font-bold tabular-nums leading-tight text-white">
+            {kpi.value}
+          </span>
         </div>
       </div>
-      <div className="flex items-center justify-between gap-1">
-        <span className={cn(
-          "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular",
-          trendUp ? "bg-primary/10 text-primary" : trendDown ? "bg-critical/10 text-critical" : "text-[#5a6660]",
-        )}>
-          {trendUp   && <ArrowUpRight   className="size-2.5" />}
-          {trendDown && <ArrowDownRight className="size-2.5" />}
+      <div className="flex items-center justify-between gap-1 mt-1">
+        <span
+          className={cn(
+            "flex items-center gap-0.5 text-[9px] font-semibold tabular-nums",
+            trendUp ? "text-primary" : trendDown ? "text-critical" : "text-muted-foreground"
+          )}
+        >
+          {trendUp && <ArrowUpRight className="size-3" />}
+          {trendDown && <ArrowDownRight className="size-3" />}
           {kpi.trend}
         </span>
-        <span className={cn("text-[10px] font-semibold", confColor)}>
-          {kpi.confidence}
-        </span>
       </div>
-      <Sparkline data={kpi.spark} stroke={toneStroke[kpi.tone]} className="h-6" />
-      <div
-        className="pointer-events-none absolute -right-4 -top-4 size-12 rounded-full blur-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-        style={{ background: toneStroke[kpi.tone] + "20" }}
-      />
     </div>
   );
 }
 
-// ── Donut Chart ───────────────────────────────────────────────────────────────
-function DonutChart({ segments, size = 96 }) {
-  const r = size / 2 - 8;
-  const circ = 2 * Math.PI * r;
-  let offset = 0;
+function EvidenceLink({ children }) {
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={10} />
-      {segments.map((seg, i) => {
-        const dash  = (seg.pct / 100) * circ;
-        const gap   = circ - dash;
-        const el = (
-          <circle
-            key={i}
-            cx={size/2} cy={size/2} r={r}
-            fill="none"
-            stroke={seg.color}
-            strokeWidth={10}
-            strokeDasharray={`${dash} ${gap}`}
-            strokeDashoffset={-offset}
-            strokeLinecap="butt"
-            style={{ transition: "stroke-dashoffset 700ms ease" }}
-          />
-        );
-        offset += dash;
-        return el;
-      })}
-    </svg>
-  );
+    <div className="flex items-center gap-1.5 cursor-pointer group">
+      <FileText className="size-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+      <span className="text-[11px] font-medium text-white group-hover:text-primary group-hover:underline transition-colors line-clamp-1">{children}</span>
+    </div>
+  )
 }
 
-// ── Insights section ──────────────────────────────────────────────────────────
-function InsightsSection() {
-  const { byCategory, byOwner, byUrgency } = approvalsInsights;
-  return (
-    <section className="rounded-xl border border-[#ffffff08] bg-[#0a0c0b] animate-fade-up" style={{ animationDelay: "120ms" }}>
-      <header className="border-b border-[#ffffff06] px-4 py-3">
-        <h2 className="text-sm font-semibold text-foreground">Approval insights</h2>
-      </header>
-      <div className="grid grid-cols-1 gap-0 divide-y divide-[#ffffff06] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-
-        {/* By category */}
-        <div className="flex flex-col gap-3 p-4">
-          <p className="text-xs font-medium text-[#4a5450]">Approvals by category</p>
-          <div className="flex items-center gap-4">
-            <div className="relative shrink-0">
-              <DonutChart segments={byCategory} size={88} />
-            </div>
-            <ul className="flex flex-col gap-1.5">
-              {byCategory.map((c) => (
-                <li key={c.label} className="flex items-center gap-2 text-xs">
-                  <span className="size-2 shrink-0 rounded-full" style={{ background: c.color }} />
-                  <span className="text-[#5a6660]">{c.label}</span>
-                  <span className="ml-auto font-semibold text-foreground tabular">{c.value} ({c.pct}%)</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* By owner */}
-        <div className="flex flex-col gap-3 p-4">
-          <p className="text-xs font-medium text-[#4a5450]">By owner</p>
-          <ul className="flex flex-col gap-2">
-            {byOwner.map((o) => (
-              <li key={o.label} className="flex items-center gap-2 text-xs">
-                <span className="w-24 shrink-0 truncate text-[#5a6660]">{o.label}</span>
-                <div className="flex-1 overflow-hidden rounded-full bg-white/5 h-1.5">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all duration-700"
-                    style={{ width: `${(o.value / o.max) * 100}%` }}
-                  />
-                </div>
-                <span className="w-4 text-right font-semibold text-foreground tabular">{o.value}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* By urgency */}
-        <div className="flex flex-col gap-3 p-4">
-          <p className="text-xs font-medium text-[#4a5450]">By urgency</p>
-          <div className="flex items-center gap-4">
-            <div className="relative shrink-0">
-              <DonutChart segments={byUrgency} size={88} />
-            </div>
-            <ul className="flex flex-col gap-1.5">
-              {byUrgency.map((u) => (
-                <li key={u.label} className="flex items-center gap-2 text-xs">
-                  <span className="size-2 shrink-0 rounded-full" style={{ background: u.color }} />
-                  <span className="text-[#5a6660]">{u.label}</span>
-                  <span className="ml-auto font-semibold text-foreground tabular">{u.value} ({u.pct}%)</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-      </div>
-
-      {/* System status bar */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-[#ffffff06] px-4 py-2.5 text-[11px]">
-        {[
-          { label: "System status", value: "All systems operational", tone: "primary" },
-          { label: "Data pipeline", value: "Healthy", tone: "primary" },
-          { label: "AI extraction", value: "Healthy", tone: "primary" },
-          { label: "Agent runtime", value: "Healthy", tone: "primary" },
-          { label: "Approval service", value: "Healthy", tone: "primary" },
-        ].map((s) => (
-          <div key={s.label} className="flex items-center gap-1.5">
-            <span className="text-[#4a5450]">{s.label}</span>
-            <span className="flex items-center gap-1 font-medium text-primary">
-              <span className="size-1.5 rounded-full bg-primary" />
-              {s.value}
-            </span>
-          </div>
-        ))}
-        <span className="ml-auto text-[#3a4040]">Last updated: 2m ago</span>
-      </div>
-    </section>
-  );
-}
-
-// ── Approval detail panel ─────────────────────────────────────────────────────
-function DetailPanel({ item, onClose }) {
+function DetailPanel({ item, onClose, onUpdateState }) {
   const [activeTab, setActiveTab] = useState("Overview");
-  const [notes, setNotes]         = useState("");
-  const [approved, setApproved]   = useState(false);
   const d = approvalsDetail;
-
-  function handleApprove() {
-    setApproved(true);
-    toast.success("Approved", { description: `${item.title} approved and queued for execution.` });
-  }
-  function handleReject() {
-    toast.error("Rejected", { description: `${item.title} has been rejected.` });
-  }
+  const tabList = ["Overview", "Evidence (12)", "Impact", "Timeline", "Related (4)"];
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-[#ffffff08] bg-[#0a0c0b] h-full">
-
-      {/* Panel header */}
-      <header className="flex items-start justify-between gap-3 border-b border-[#ffffff06] px-4 py-3">
-        <div className="flex flex-col gap-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-foreground leading-snug truncate">{item.title}</span>
-            <SeverityBadge level={item.priority} />
-            <span className={cn(
-              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-              "bg-critical/10 text-critical border-critical/25",
-            )}>
-              <AlertCircle className="size-2.5" />
-              {item.urgency}
+    <div className="flex flex-col h-full rounded-xl border border-[#1E2730] bg-[#0A0C0B] overflow-hidden">
+      {/* Header */}
+      <div className="flex flex-col border-b border-[#1E2730]">
+        <div className="flex items-center justify-between px-5 py-4 shrink-0">
+          <div className="flex flex-col gap-1.5 min-w-0 pr-2">
+            <h3 className="text-sm font-semibold text-white truncate flex items-center gap-2">
+              {d.title}
+              <SeverityBadge level={d.badge} />
+            </h3>
+            <span className="text-[10px] text-muted-foreground">
+              {d.sub}
+            </span>
+            <span className="text-[10px] text-muted-foreground mt-1">
+              Requested by {d.requestedBy} · {d.requestedAt}
             </span>
           </div>
-          <p className="text-[11px] text-[#4a5450]">
-            {item.sub} &middot; Requested by {item.owner} ({item.ownerRole}) &middot; May 24, 2026 10:15 AM
-          </p>
+          <div className="flex items-center gap-2 shrink-0 self-start">
+            <span className="flex items-center gap-1.5 rounded border border-critical/30 bg-critical/10 px-2 py-1 text-[10px] font-bold text-critical uppercase tracking-widest">
+              <AlertCircle className="size-3" /> {d.urgency}
+            </span>
+            <button className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-[#1E2730] hover:text-white transition-colors">
+              <Maximize2 className="size-3.5" />
+            </button>
+            <button onClick={onClose} className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-[#1E2730] hover:text-white transition-colors">
+              <X className="size-4" />
+            </button>
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <button
-            type="button"
-            className="flex items-center gap-1 rounded-md border border-[#ffffff10] px-2.5 py-1 text-[11px] text-[#5a6660] hover:bg-white/5 transition-colors"
-          >
-            Open <ChevronDown className="size-3" />
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex size-7 items-center justify-center rounded-md text-[#5a6660] hover:bg-white/5 transition-colors"
-          >
-            <X className="size-3.5" />
-          </button>
-        </div>
-      </header>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-0 border-b border-[#ffffff06] px-4 overflow-x-auto">
-        {tabList.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className={cn(
-              "shrink-0 border-b-2 px-3 py-2.5 text-xs font-medium transition-colors",
-              activeTab === tab
-                ? "border-primary text-primary"
-                : "border-transparent text-[#5a6660] hover:text-foreground",
-            )}
-          >
-            {tab}
-          </button>
-        ))}
+        {/* Tabs */}
+        <div className="flex items-center gap-6 px-5 text-[11px] font-semibold shrink-0">
+          {tabList.map(t => (
+            <button 
+              key={t}
+              onClick={() => setActiveTab(t.split(' ')[0])}
+              className={cn(
+                "pb-3 transition-colors relative",
+                activeTab === t.split(' ')[0] ? "text-white" : "text-muted-foreground hover:text-white"
+              )}
+            >
+              {t}
+              {activeTab === t.split(' ')[0] && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-t-full" />}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Overview body */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin flex flex-col">
         {activeTab === "Overview" && (
-          <div className="flex flex-col gap-4 p-4">
-
-            {/* Metrics grid */}
-            <div className="grid grid-cols-3 gap-3">
-              {/* Impact */}
-              <div className="flex flex-col gap-0.5">
-                <p className="text-[10px] font-medium text-[#4a5450] uppercase tracking-wide">Impact summary</p>
-                <p className="text-xl font-bold tabular text-foreground">{d.estimatedImpact}</p>
-                <p className="text-[10px] text-[#4a5450]">{d.impactSub}</p>
-                <div className="mt-1 flex flex-col gap-0.5">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-sm font-bold text-foreground">{d.roi}</span>
-                    <span className="text-[10px] text-[#4a5450]">{d.roiSub}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-bold text-foreground">{d.reduction}</span>
-                    <span className={cn(
-                      "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
-                      "bg-critical/10 text-critical",
-                    )}>{d.strategicPriority}</span>
-                  </div>
+          <div className="flex flex-col gap-6 p-5">
+            {/* Impact Summary Grid */}
+            <div className="flex flex-col gap-3">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-white">Impact summary</span>
+              <div className="grid grid-cols-2 gap-y-4 gap-x-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xl font-bold text-white tabular-nums">{d.estimatedImpact}</span>
+                  <span className="text-[10px] text-muted-foreground">{d.impactSub}</span>
                 </div>
-              </div>
-
-              {/* Confidence ring */}
-              <div className="flex flex-col items-center gap-1">
-                <p className="text-[10px] font-medium text-[#4a5450] uppercase tracking-wide">Confidence</p>
-                <Ring value={d.confidence} size={64} stroke="var(--primary)" />
-                <span className="text-xs font-semibold text-primary">{d.confidenceLabel}</span>
-                <button type="button" className="text-[10px] text-primary underline-offset-2 hover:underline">
-                  How confidence is calculated
-                </button>
-              </div>
-
-              {/* Evidence summary */}
-              <div className="flex flex-col gap-1">
-                <p className="text-[10px] font-medium text-[#4a5450] uppercase tracking-wide">Evidence summary</p>
-                {[
-                  { label: "Total documents", value: d.totalDocs },
-                  { label: "Data sources",    value: d.dataSources },
-                  { label: "Extracted facts", value: d.extractedFacts },
-                  { label: "Completeness",    value: `${d.completeness}%` },
-                ].map((m) => (
-                  <div key={m.label} className="flex items-center justify-between text-xs">
-                    <span className="text-[#5a6660]">{m.label}</span>
-                    <span className="font-semibold text-foreground tabular">{m.value}</span>
-                  </div>
-                ))}
-                <button type="button" className="mt-0.5 text-left text-[10px] text-primary underline-offset-2 hover:underline">
-                  View all evidence →
-                </button>
+                <div className="flex flex-col gap-1 pl-4">
+                  <span className="text-xl font-bold text-white tabular-nums">{d.roi}</span>
+                  <span className="text-[10px] text-muted-foreground">{d.roiSub}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xl font-bold text-white tabular-nums">{d.reduction}</span>
+                  <span className="text-[10px] text-muted-foreground">{d.reductionSub}</span>
+                </div>
+                <div className="flex flex-col gap-1 pl-4">
+                  <span className="text-lg font-bold text-critical">{d.strategicPriority}</span>
+                  <span className="text-[10px] text-muted-foreground">Strategic priority</span>
+                </div>
               </div>
             </div>
 
-            {/* AI recommended action */}
-            <div className="rounded-lg border border-[#ffffff08] bg-[#0d0f0e] p-3">
-              <div className="mb-2 flex items-center gap-1.5">
-                <Bot className="size-3.5 text-primary" />
-                <span className="text-xs font-semibold text-foreground">AI recommended action</span>
+            <div className="grid grid-cols-2 gap-6">
+              {/* Confidence */}
+              <div className="flex flex-col gap-3">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-white">Confidence</span>
+                <div className="flex flex-col items-center justify-center p-4 border border-[#1E2730] rounded-lg bg-[#141B21]/50 gap-2">
+                  <div className="relative flex size-16 items-center justify-center">
+                     <svg viewBox="0 0 36 36" className="absolute inset-0 size-full -rotate-90">
+                       <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
+                       <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--primary)" strokeWidth="3" strokeDasharray={`${d.confidence}, 100`} />
+                     </svg>
+                     <span className="text-lg font-bold text-white tabular-nums">{d.confidence}%</span>
+                  </div>
+                  <span className="text-[11px] font-bold text-primary">{d.confidenceLabel}</span>
+                  <button className="text-[9px] text-primary hover:underline mt-1">How confidence is calculated</button>
+                </div>
               </div>
-              <p className="text-xs leading-relaxed text-[#8a9490]">{d.recommendedAction}</p>
-              <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-[#4a5450]">Rationale</p>
-              <ul className="mt-1 flex flex-col gap-1">
+
+              {/* Evidence Summary */}
+              <div className="flex flex-col gap-3">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-white">Evidence summary</span>
+                <div className="flex flex-col gap-3 pt-2">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-muted-foreground">Total documents</span>
+                    <span className="font-bold text-white tabular-nums">{d.totalDocs}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-muted-foreground">Data sources</span>
+                    <span className="font-bold text-white tabular-nums">{d.dataSources}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-muted-foreground">Extracted facts</span>
+                    <span className="font-bold text-white tabular-nums">{d.extractedFacts}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-muted-foreground">Completeness</span>
+                    <span className="font-bold text-white tabular-nums">{d.completeness}%</span>
+                  </div>
+                  <button onClick={() => toast.info("Opening all evidence")} className="text-[10px] text-[#3b82f6] hover:underline font-medium mt-1 text-left">View all evidence →</button>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Recommended Action */}
+            <div className="flex flex-col gap-3">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-white">AI recommended action</span>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">{d.recommendedAction}</p>
+            </div>
+            
+            {/* Rationale */}
+            <div className="flex flex-col gap-3">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-white">Rationale</span>
+              <div className="flex flex-col gap-2.5">
                 {d.rationale.map((r, i) => (
-                  <li key={i} className="flex items-start gap-1.5 text-xs text-[#8a9490]">
-                    <Check className="mt-0.5 size-3 shrink-0 text-primary" />
-                    {r}
-                  </li>
-                ))}
-              </ul>
-              <button type="button" className="mt-2 text-[11px] text-primary underline-offset-2 hover:underline">
-                View full rationale →
-              </button>
-            </div>
-
-            {/* Reviewer notes */}
-            <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold text-foreground">Reviewer notes</p>
-              <div className="rounded-lg border border-[#ffffff08] bg-[#0d0f0e] overflow-hidden">
-                {/* Toolbar */}
-                <div className="flex items-center gap-1 border-b border-[#ffffff06] px-2 py-1.5">
-                  {[Bold, Italic, Underline, Link2, List, ListOrdered].map((Icon, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      className="flex size-6 items-center justify-center rounded text-[#5a6660] hover:bg-white/5 hover:text-foreground transition-colors"
-                    >
-                      <Icon className="size-3" />
-                    </button>
-                  ))}
-                </div>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add your notes, questions, or instructions for the agent..."
-                  className="min-h-[72px] resize-none rounded-none border-0 bg-transparent text-xs text-[#8a9490] placeholder:text-[#3a4440] focus-visible:ring-0 focus-visible:ring-offset-0"
-                />
-                {notes && (
-                  <div className="border-t border-[#ffffff06] px-3 py-1.5 text-[10px] text-[#3a4040]">
-                    Saved 2m ago
+                  <div key={i} className="flex items-start gap-2.5">
+                    <CheckCircle2 className="size-3.5 text-primary shrink-0 mt-0.5" />
+                    <span className="text-[11px] text-muted-foreground leading-relaxed">{r}</span>
                   </div>
-                )}
+                ))}
               </div>
+              <button className="text-[10px] text-[#3b82f6] hover:underline font-medium mt-1 text-left">View full rationale →</button>
             </div>
 
-            {/* Action buttons */}
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                onClick={handleApprove}
-                disabled={approved}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 text-xs"
-              >
-                <Check className="size-3.5" />
-                {approved ? "Approved" : "Approve"}
-              </Button>
-              <Button
-                onClick={handleReject}
-                variant="destructive"
-                className="gap-1.5 text-xs"
-              >
-                <X className="size-3.5" />
-                Reject
-              </Button>
-              <Button variant="outline" className="gap-1.5 text-xs border-[#ffffff10] text-[#8a9490] hover:text-foreground hover:bg-white/5">
-                <FileText className="size-3.5" />
-                Edit details
-              </Button>
-              <Button variant="outline" className="gap-1.5 text-xs border-[#ffffff10] text-[#8a9490] hover:text-foreground hover:bg-white/5">
-                <ExternalLink className="size-3.5" />
-                Request more evidence
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="ghost" className="gap-1.5 text-xs text-[#5a6660] hover:text-foreground border border-[#ffffff08]">
-                <Clock className="size-3.5" />
-                Snooze
-                <ChevronDown className="size-3" />
-              </Button>
-              <Button variant="ghost" className="gap-1.5 text-xs text-[#5a6660] hover:text-foreground border border-[#ffffff08]">
-                <Check className="size-3.5" />
-                Mark done
-              </Button>
-            </div>
-
-            {/* Approval timeline */}
-            <div>
-              <p className="mb-3 text-xs font-semibold text-foreground">Approval timeline</p>
-              <div className="relative">
-                {/* Connector line */}
-                <div className="absolute left-0 right-0 top-2.5 h-px bg-[#ffffff08]" />
-                <div className="relative flex items-start justify-between gap-1 overflow-x-auto pb-1">
-                  {d.timeline.map((step, i) => (
-                    <div key={i} className="flex min-w-[72px] flex-col items-center gap-1.5 text-center">
-                      <div className={cn(
-                        "relative z-10 flex size-5 items-center justify-center rounded-full border-2",
-                        step.done
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : step.active
-                          ? "border-primary bg-[#0a0c0b] shadow-[0_0_8px_rgba(74,222,128,0.4)]"
-                          : "border-[#2a3430] bg-[#0a0c0b]",
-                      )}>
-                        {step.done && <Check className="size-2.5" />}
-                        {step.active && <span className="size-1.5 rounded-full bg-primary animate-pulse" />}
-                      </div>
-                      <span className={cn(
-                        "text-[9px] font-medium leading-tight",
-                        step.active ? "text-primary" : step.done ? "text-foreground" : "text-[#3a4040]",
-                      )}>{step.label}</span>
-                      <span className="text-[9px] text-[#2a3430] leading-tight">{step.date}</span>
-                    </div>
-                  ))}
+            {/* Reviewer Notes */}
+            <div className="flex flex-col gap-3 border-t border-[#1E2730] pt-6">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-white">Reviewer notes</span>
+              <div className="flex flex-col rounded-md border border-[#1E2730] bg-[#141B21]/50 overflow-hidden">
+                <div className="flex items-center gap-1 border-b border-[#1E2730] px-2 py-1.5 bg-[#0A0C0B]">
+                  <button className="p-1.5 text-muted-foreground hover:text-white rounded hover:bg-[#1E2730]"><Bold className="size-3" /></button>
+                  <button className="p-1.5 text-muted-foreground hover:text-white rounded hover:bg-[#1E2730]"><Italic className="size-3" /></button>
+                  <button className="p-1.5 text-muted-foreground hover:text-white rounded hover:bg-[#1E2730]"><Underline className="size-3" /></button>
+                  <div className="w-px h-3 bg-[#1E2730] mx-1" />
+                  <button className="p-1.5 text-muted-foreground hover:text-white rounded hover:bg-[#1E2730]"><AlignLeft className="size-3" /></button>
+                  <button className="p-1.5 text-muted-foreground hover:text-white rounded hover:bg-[#1E2730]"><List className="size-3" /></button>
+                  <div className="w-px h-3 bg-[#1E2730] mx-1" />
+                  <button className="p-1.5 text-muted-foreground hover:text-white rounded hover:bg-[#1E2730]"><Link2 className="size-3" /></button>
+                </div>
+                <textarea 
+                  className="w-full bg-transparent p-3 text-[11px] text-white placeholder:text-muted-foreground outline-none resize-none min-h-[80px]"
+                  placeholder="Add your notes, questions, or instructions for the agent..."
+                />
+                <div className="flex justify-end p-2 px-3 text-[9px] text-muted-foreground">
+                  Saved 2m ago
                 </div>
               </div>
-              <div className="mt-2 flex items-center justify-between">
-                <button type="button" className="text-[10px] text-primary underline-offset-2 hover:underline">
-                  View full timeline →
-                </button>
-                <span className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                  "bg-critical/10 text-critical",
-                )}>
-                  Approval SLA: {d.sla} · {d.slaRisk}
-                </span>
-              </div>
             </div>
-
+            
           </div>
         )}
+      </div>
 
-        {activeTab !== "Overview" && (
-          <div className="flex items-center justify-center p-12 text-sm text-[#4a5450]">
-            {activeTab} — coming soon
+      {/* Action Buttons */}
+      <div className="flex flex-col border-t border-[#1E2730] bg-[#050706] shrink-0 p-4 gap-3">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => { onUpdateState(item.id, "Approved"); onClose(); }} 
+            className="flex-1 flex items-center justify-center gap-2 rounded bg-primary/20 border border-primary/30 px-3 py-2 text-[11px] font-bold text-primary transition-colors hover:bg-primary/30"
+          >
+            <Check className="size-3.5" /> Approve
+          </button>
+          <button 
+            onClick={() => { onUpdateState(item.id, "Rejected"); onClose(); }}
+            className="flex-1 flex items-center justify-center gap-2 rounded bg-critical/20 border border-critical/30 px-3 py-2 text-[11px] font-bold text-critical transition-colors hover:bg-critical/30"
+          >
+            <X className="size-3.5" /> Reject
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="flex-1 flex items-center justify-center gap-2 rounded border border-[#1E2730] bg-[#141B21] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[#1E2730]">
+            <PenTool className="size-3 text-muted-foreground" /> Edit details
+          </button>
+          <button className="flex-1 flex items-center justify-center gap-2 rounded border border-[#1E2730] bg-[#141B21] px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-[#1E2730]">
+            <FileText className="size-3 text-muted-foreground" /> Request more evidence
+          </button>
+        </div>
+        <div className="flex items-center justify-center gap-6 mt-1 text-[10px] text-muted-foreground font-medium">
+          <button className="flex items-center gap-1.5 hover:text-white transition-colors"><Clock className="size-3" /> Snooze</button>
+          <button className="flex items-center gap-1.5 hover:text-white transition-colors"><CheckCircle2 className="size-3" /> Mark done</button>
+        </div>
+      </div>
+
+      {/* Timeline Section */}
+      <div className="flex flex-col border-t border-[#1E2730] bg-[#0A0C0B] shrink-0 p-5">
+        <div className="flex flex-col gap-4">
+          <span className="text-[11px] font-semibold text-white">Approval timeline</span>
+          <div className="relative flex items-start justify-between">
+            <div className="absolute left-2 right-2 top-[7px] h-px bg-[#1E2730]" />
+            <div className="absolute left-2 right-1/2 top-[7px] h-px bg-primary" />
+            
+            {d.timeline.map((step, idx) => (
+              <div key={idx} className="relative flex flex-col items-center flex-1 z-10 px-1 group cursor-default">
+                <div className={cn(
+                  "flex size-3.5 items-center justify-center rounded-full border border-[#0A0C0B] mb-2",
+                  step.done ? "bg-primary" : step.active ? "bg-[#3b82f6] shadow-[0_0_8px_rgba(59,130,246,0.5)]" : "bg-[#1E2730]"
+                )}>
+                  {step.active && <div className="size-1.5 rounded-full bg-white" />}
+                </div>
+                <div className="text-center flex flex-col gap-0.5 items-center max-w-[60px]">
+                  <span className={cn("text-[9px] font-medium line-clamp-2 leading-tight", step.active || step.done ? "text-white" : "text-muted-foreground")}>{step.label}</span>
+                  <span className="text-[8px] text-muted-foreground line-clamp-1">{step.date}</span>
+                </div>
+              </div>
+            ))}
           </div>
-        )}
+          <div className="flex items-center justify-between text-[10px] mt-2">
+            <button className="text-[#3b82f6] hover:underline font-medium flex items-center gap-1">View full timeline <ArrowRight className="size-3" /></button>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              Approval SLA: {d.sla} <span className="rounded bg-warning/20 border border-warning/30 px-1.5 py-0.5 font-bold text-warning uppercase tracking-widest">{d.slaRisk}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-export default function Approvals() {
+export default function Approvals({ onNavigate }) {
+  const [items, setItems] = useState(approvalsQueue);
+  const [filter, setFilter] = useState("All");
   const [selectedId, setSelectedId] = useState(approvalsQueue[0].id);
-  const [checkedIds, setCheckedIds] = useState(new Set());
-  const [activeTab,  setActiveTab]  = useState("All 24");
-  const [page,       setPage]       = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
-  const totalPages  = Math.ceil(approvalsQueue.length / rowsPerPage);
 
-  const selected = approvalsQueue.find((r) => r.id === selectedId) || approvalsQueue[0];
+  const filteredItems = items.filter((item) => {
+    if (filter === "All") return true;
+    return item.priority === filter || item.urgency === filter;
+  });
 
-  function toggleCheck(id) {
-    setCheckedIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }
+  const selectedItem = items.find((i) => i.id === selectedId);
 
-  const queueTabs = ["All 24", "Urgent 6", "Due Soon 7", "Mine 8", "By Agent", "By Impact"];
+  const updateState = (id, newState) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, status: newState } : item))
+    );
+    toast.success(`Marked as ${newState}`);
+  };
+
+  const totalPages = Math.ceil(filteredItems.length / rowsPerPage);
 
   return (
-    <div className="flex h-[calc(100vh-6.5rem)] flex-col gap-4">
-      <PageHeader
-        title="Approvals"
-        description="Human oversight for high-impact actions. You stay in control."
-      />
+    <div className="scrollbar-thin flex h-full flex-col gap-6 overflow-y-auto p-6 pb-2">
+      {/* Header */}
+      <header className="flex flex-col gap-1 shrink-0">
+        <h1 className="text-2xl font-semibold text-white">Approvals</h1>
+        <p className="text-[11px] text-muted-foreground">Human oversight for high-impact actions. You stay in control.</p>
+      </header>
 
-      {/* ── KPI strip ── */}
-      <div className="grid shrink-0 grid-cols-3 gap-2.5 sm:grid-cols-5 xl:grid-cols-9">
+      {/* KPI Strip */}
+      <div className="flex items-center gap-4 overflow-x-auto scrollbar-thin pb-2 shrink-0">
         {approvalsKpis.map((kpi, i) => (
           <KpiCard key={kpi.id} kpi={kpi} index={i} />
         ))}
       </div>
 
-      {/* ── Main split: table + detail panel ── */}
-  <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[1fr_420px]">
-  
-  {/* Left: Human decision queue */}
-        <section className="flex flex-col overflow-hidden rounded-xl border border-[#ffffff08] bg-[#0a0c0b] animate-fade-up" style={{ animationDelay: "60ms" }}>
-
-          {/* Queue header */}
-          <header className="flex items-center justify-between gap-3 border-b border-[#ffffff06] px-4 py-3">
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-foreground">Human decision queue</h2>
-              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-bold text-primary">
-                {approvalsQueue.length}
-              </span>
+      <div className="flex flex-1 gap-6 overflow-hidden h-full min-h-[900px]">
+        {/* Main List */}
+        <div className="flex flex-col flex-1 rounded-xl border border-[#1E2730] bg-[#0A0C0B] overflow-hidden min-w-0">
+          <div className="flex items-center justify-between border-b border-[#1E2730] px-5 py-4 shrink-0">
+            <div className="flex items-center gap-6">
+              <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Human decision queue <span className="text-muted-foreground font-normal normal-case text-[10px]">24</span></h3>
+              <div className="flex items-center gap-6 text-[11px] font-semibold">
+                {["All 24", "Urgent 6", "Due Soon 7", "Mine 8", "By Agent", "By Impact"].map((f, i) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f.split(' ')[0])}
+                    className={cn(
+                      "transition-colors relative pb-4 -mb-4",
+                      (i === 0 && filter === "All") || filter === f.split(' ')[0]
+                        ? "text-white"
+                        : "text-muted-foreground hover:text-white"
+                    )}
+                  >
+                    {f}
+                    {((i === 0 && filter === "All") || filter === f.split(' ')[0]) && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-t-full" />}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button type="button" className="flex items-center gap-1.5 rounded-md border border-[#ffffff10] px-2.5 py-1.5 text-[11px] text-[#5a6660] hover:bg-white/5 transition-colors">
-                <SlidersHorizontal className="size-3" />
-                Filters
+            
+            <div className="flex items-center gap-3">
+              <button className="flex items-center gap-1.5 rounded border border-[#1E2730] bg-transparent px-3 py-1.5 text-[10px] text-white hover:bg-[#141B21] transition-colors">
+                <Filter className="size-3 text-muted-foreground" /> Filters
               </button>
-              <button type="button" className="flex items-center gap-1.5 rounded-md border border-[#ffffff10] px-2.5 py-1.5 text-[11px] text-[#5a6660] hover:bg-white/5 transition-colors">
-                Sort: Due soonest
-                <ChevronDown className="size-3" />
-              </button>
-              <button type="button" className="flex size-7 items-center justify-center rounded-md border border-[#ffffff10] text-[#5a6660] hover:bg-white/5 transition-colors">
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-1.5 rounded border border-[#1E2730] bg-transparent px-3 py-1.5 text-[10px] text-muted-foreground hover:bg-[#141B21] transition-colors">
+                  Sort: Due soonest <ChevronDown className="size-3" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40 border-[#1E2730] bg-[#0A0C0B] text-muted-foreground">
+                  <DropdownMenuItem onClick={() => toast.success("Sorted by Due Date")} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Due soonest</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.success("Sorted by Impact")} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Highest impact</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <button className="flex size-7 items-center justify-center rounded border border-[#1E2730] text-muted-foreground hover:bg-[#141B21] hover:text-white transition-colors ml-1">
                 <LayoutGrid className="size-3.5" />
               </button>
             </div>
-          </header>
-
-          {/* Tab bar */}
-          <div className="flex items-center gap-0 overflow-x-auto border-b border-[#ffffff06] px-4">
-            {queueTabs.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className={cn(
-                  "shrink-0 border-b-2 px-3 py-2.5 text-xs font-medium transition-colors whitespace-nowrap",
-                  activeTab === tab
-                    ? "border-primary text-primary"
-                    : "border-transparent text-[#5a6660] hover:text-foreground",
-                )}
-              >
-                {tab}
-              </button>
-            ))}
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px]">
-              <thead>
-                <tr className="border-b border-[#ffffff06]">
-                  <th className="px-4 py-2.5 text-left">
-                    <Checkbox className="border-[#2a3430] data-[state=checked]:bg-primary" />
-                  </th>
-                  {["Action", "Impact", "Owner", "Evidence", "Proof trail", "Status", "Due", "Agent", "AI Confidence"].map((col) => (
-                    <th key={col} className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-[#4a5450] whitespace-nowrap">
-                      {col}
-                    </th>
-                  ))}
+          <div className="flex-1 overflow-y-auto scrollbar-thin">
+            <table className="w-full whitespace-nowrap text-left text-[10px]">
+              <thead className="sticky top-0 z-10 border-b border-[#1E2730] bg-[#0A0C0B]">
+                <tr>
+                  <th className="px-4 py-3 font-semibold w-10 text-center"><Checkbox className="border-[#1E2730] data-[state=checked]:bg-primary data-[state=checked]:text-black" /></th>
+                  <th className="px-3 py-3 font-semibold uppercase tracking-widest text-muted-foreground w-16">Action</th>
+                  <th className="px-3 py-3 font-semibold uppercase tracking-widest text-muted-foreground w-[280px]"></th>
+                  <th className="px-3 py-3 font-semibold uppercase tracking-widest text-muted-foreground">Impact</th>
+                  <th className="px-3 py-3 font-semibold uppercase tracking-widest text-muted-foreground">Owner</th>
+                  <th className="px-3 py-3 font-semibold uppercase tracking-widest text-muted-foreground">Evidence</th>
+                  <th className="px-3 py-3 font-semibold uppercase tracking-widest text-muted-foreground">Proof trail</th>
+                  <th className="px-3 py-3 font-semibold uppercase tracking-widest text-muted-foreground text-center">Status</th>
+                  <th className="px-3 py-3 font-semibold uppercase tracking-widest text-muted-foreground">Due</th>
+                  <th className="px-3 py-3 font-semibold uppercase tracking-widest text-muted-foreground">Agent</th>
+                  <th className="px-4 py-3 font-semibold uppercase tracking-widest text-muted-foreground text-center">AI Confidence</th>
                 </tr>
               </thead>
-              <tbody>
-                {approvalsQueue.map((row) => {
-                  const isSelected = row.id === selectedId;
-                  const confColor  = row.confidence >= 88 ? "text-primary" : row.confidence >= 75 ? "text-warning" : "text-critical";
-                  return (
-                    <tr
-                      key={row.id}
-                      onClick={() => setSelectedId(row.id)}
-                      className={cn(
-                        "cursor-pointer border-b border-[#ffffff04] transition-colors hover:bg-[#0d1110]",
-                        isSelected && "bg-primary/5 border-l-2 border-l-primary",
-                      )}
-                    >
-                      {/* Checkbox */}
-                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={checkedIds.has(row.id)}
-                          onCheckedChange={() => toggleCheck(row.id)}
-                          className="border-[#2a3430] data-[state=checked]:bg-primary"
-                        />
-                      </td>
-
-                      {/* Action */}
-                      <td className="max-w-[180px] px-3 py-3">
-                        <div className="flex items-start gap-2">
-                          <SeverityBadge level={row.priority} />
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-medium text-foreground leading-snug">{row.title}</p>
-                            <p className="truncate text-[10px] text-[#4a5450]">{row.sub}</p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Impact */}
-                      <td className="px-3 py-3">
-                        <p className="text-xs font-bold tabular text-foreground">{row.impactStr}</p>
-                        <p className="text-[10px] text-[#4a5450]">{row.impactSub}</p>
-                      </td>
-
-                      {/* Owner */}
-                      <td className="px-3 py-3">
-                        <p className="text-xs text-foreground whitespace-nowrap">{row.owner}</p>
-                        <p className="text-[10px] text-[#4a5450]">{row.ownerRole}</p>
-                      </td>
-
-                      {/* Evidence */}
-                      <td className="px-3 py-3 text-center">
-                        <p className="text-xs font-semibold text-foreground">{row.evidenceDocs}</p>
-                        <p className="text-[10px] text-[#4a5450]">docs</p>
-                      </td>
-
-                      {/* Proof trail */}
-                      <td className="px-3 py-3">
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); toast(`Proof trail ${row.proofTrail}`); }}
-                          className="flex items-center gap-1 text-[11px] font-medium text-evidence hover:text-evidence/70 transition-colors"
+              <tbody className="divide-y divide-[#1E2730]/50">
+                {filteredItems.map((item, i) => (
+                  <tr
+                    key={item.id}
+                    onClick={() => setSelectedId(item.id)}
+                    className={cn(
+                      "group animate-fade-up cursor-pointer transition-colors hover:bg-white/[0.02]",
+                      selectedId === item.id && "bg-white/[0.05] border-l-2 border-l-primary border-r-0 border-y-[#1E2730]"
+                    )}
+                    style={{ animationDelay: `${i * 30}ms` }}
+                  >
+                    <td className="px-4 py-3.5 text-center"><Checkbox className="border-[#1E2730] data-[state=checked]:bg-primary data-[state=checked]:text-black" checked={selectedId === item.id} /></td>
+                    <td className="px-3 py-3.5">
+                      <span className={cn("rounded border px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest whitespace-nowrap", 
+                          item.priority === "High" ? "border-critical/30 bg-critical/10 text-critical" :
+                          item.priority === "Medium" ? "border-warning/30 bg-warning/10 text-warning" :
+                          "border-[#1E2730] bg-[#141B21] text-muted-foreground"
+                        )}>
+                        {item.priority}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3.5 max-w-[280px]">
+                      <div className="flex flex-col gap-0.5 pr-4">
+                        <span className="font-semibold text-white truncate text-[11px]">
+                          {item.title}
+                        </span>
+                        <span className="truncate text-[9px] text-muted-foreground">
+                          {item.sub}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-bold text-white tabular-nums text-[11px]">
+                          {item.impactStr}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground">
+                          {item.impactSub}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-white text-[11px]">
+                          {item.owner}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground">
+                          {item.ownerRole}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-bold text-white tabular-nums text-[11px]">
+                          {item.evidenceDocs}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground">docs</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3.5">
+                       <button onClick={() => toast.info("Viewing proof trail")} className="flex items-center gap-1 text-[10px] font-medium text-[#3b82f6] hover:underline whitespace-nowrap">
+                         {item.proofTrail} <ArrowUpRight className="size-3" />
+                       </button>
+                    </td>
+                    <td className="px-3 py-3.5 text-center">
+                      <ApprovalPill state={item.status} />
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <div className="flex flex-col gap-0.5">
+                        <span
+                          className={cn("text-[10px]", item.dueUrgent ? "text-critical font-semibold" : "text-white")}
                         >
-                          {row.proofTrail}
-                          <ExternalLink className="size-2.5 opacity-60" />
-                        </button>
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-3 py-3">
-                        <span className={cn(
-                          "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap",
-                          statusStyles[row.status] || "bg-white/5 text-[#5a6660] border-white/8",
-                        )}>
-                          {row.status}
+                          {item.due.split(' ')[0]} {item.due.split(' ')[1] === "overdue" ? "overdue" : ""}
                         </span>
-                      </td>
-
-                      {/* Due */}
-                      <td className="px-3 py-3">
-                        <span className={cn(
-                          "text-xs font-medium whitespace-nowrap",
-                          row.dueUrgent ? "text-critical" : "text-[#5a6660]",
-                        )}>
-                          {row.due}
+                        {item.due.split(' ').length > 2 && <span className="text-[9px] text-muted-foreground">{item.due.split(' ').slice(1).join(' ')}</span>}
+                        {item.due.split(' ').length === 2 && item.due.split(' ')[1] !== "overdue" && <span className="text-[9px] text-muted-foreground">{item.due.split(' ')[1]}</span>}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-white text-[11px]">
+                          {item.agent}
                         </span>
-                      </td>
-
-                      {/* Agent */}
-                      <td className="px-3 py-3">
-                        <p className="text-[11px] text-foreground whitespace-nowrap">{row.agent}</p>
-                        <p className="text-[10px] text-[#4a5450]">{row.agentVer}</p>
-                      </td>
-
-                      {/* AI Confidence ring */}
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <Ring value={row.confidence} size={28} stroke={row.confidence >= 88 ? "var(--primary)" : row.confidence >= 75 ? "var(--warning)" : "var(--critical)"} />
-                          <span className={cn("text-[11px] font-semibold tabular", confColor)}>{row.confidence}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        <span className="text-[9px] text-muted-foreground">
+                          {item.agentVer}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 flex justify-center">
+                      <div className="relative flex size-8 items-center justify-center">
+                         <svg viewBox="0 0 36 36" className="absolute inset-0 size-full -rotate-90">
+                           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
+                           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--primary)" strokeWidth="4" strokeDasharray={`${item.confidence}, 100`} />
+                         </svg>
+                         <span className="text-[9px] font-bold leading-none text-white tabular-nums">{item.confidence}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between gap-3 border-t border-[#ffffff06] px-4 py-3">
-            <p className="text-[11px] text-[#4a5450]">
-              Showing 1 to {approvalsQueue.length} of 24 approvals
-            </p>
-            <div className="flex items-center gap-1.5">
-              {[1, 2, 3].map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPage(p)}
-                  className={cn(
-                    "flex size-6 items-center justify-center rounded text-[11px] font-medium transition-colors",
-                    page === p
-                      ? "bg-primary text-primary-foreground"
-                      : "text-[#5a6660] hover:bg-white/5",
-                  )}
-                >
-                  {p}
-                </button>
-              ))}
-              <span className="px-1 text-[11px] text-[#4a5450]">...</span>
-              <button
-                type="button"
-                className="flex size-6 items-center justify-center rounded text-[#5a6660] hover:bg-white/5 transition-colors"
-              >
-                <ChevronRight className="size-3.5" />
-              </button>
-              <div className="ml-2 flex items-center gap-1.5 text-[11px] text-[#4a5450]">
-                10 / page
-                <ChevronDown className="size-3" />
+          
+          <div className="flex items-center justify-between border-t border-[#1E2730] px-5 py-3 text-[10px] text-muted-foreground shrink-0 bg-[#0A0C0B]">
+            <span>Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(currentPage * rowsPerPage, filteredItems.length)} of {filteredItems.length} approvals</span>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-1">
+                <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="flex size-6 items-center justify-center rounded hover:bg-[#1E2730] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="size-3" /></button>
+                {Array.from({ length: totalPages }).map((_, idx) => {
+                  const page = idx + 1;
+                  return (
+                    <button 
+                      key={page} 
+                      onClick={() => setCurrentPage(page)} 
+                      className={cn("flex size-6 items-center justify-center rounded transition-colors hover:bg-[#1E2730] hover:text-white", currentPage === page ? "border border-[#1E2730] bg-[#141B21] text-white" : "")}
+                    >
+                      {page}
+                    </button>
+                  )
+                })}
+                <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="flex size-6 items-center justify-center rounded hover:bg-[#1E2730] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="size-3" /></button>
+              </div>
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="flex items-center gap-1 font-medium text-white bg-transparent rounded px-2 py-1 transition-colors hover:bg-[#1E2730]">
+                    10 / page <ChevronDown className="size-3 text-muted-foreground" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-16 min-w-0 border-[#1E2730] bg-[#0A0C0B] text-muted-foreground">
+                    <DropdownMenuItem onClick={() => { setCurrentPage(1); }} className="text-[11px] focus:bg-[#1E2730] focus:text-white">10</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setCurrentPage(1); }} className="text-[11px] focus:bg-[#1E2730] focus:text-white">25</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setCurrentPage(1); }} className="text-[11px] focus:bg-[#1E2730] focus:text-white">50</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
-        </section>
+          
+          {/* Approval Insights */}
+          <div className="flex flex-col border-t border-[#1E2730] shrink-0 bg-[#050706]">
+            <div className="px-5 py-4 flex flex-col gap-5">
+              <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Approval insights</h3>
+              <div className="grid grid-cols-3 gap-8">
+                {/* By Category */}
+                <div className="flex flex-col gap-4">
+                  <span className="text-[10px] font-semibold text-white">Approvals by category</span>
+                  <div className="flex items-center gap-6">
+                    <div className="relative flex size-20 shrink-0">
+                      <svg viewBox="0 0 36 36" className="size-full -rotate-90">
+                        {(() => {
+                          let offset = 0;
+                          return approvalsInsights.byCategory.map((item, i) => {
+                            const val = item.pct;
+                            const stroke = item.color;
+                            const path = <path key={i} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={stroke} strokeWidth="6" strokeDasharray={`${val}, 100`} strokeDashoffset={`-${offset}`} />;
+                            offset += val;
+                            return path;
+                          });
+                        })()}
+                      </svg>
+                    </div>
+                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                      {approvalsInsights.byCategory.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between text-[9px]">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                            <span className="text-white truncate">{item.label}</span>
+                          </div>
+                          <span className="text-muted-foreground tabular-nums shrink-0">{item.value} ({item.pct}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
 
-        {/* Right: Detail panel */}
-        <DetailPanel item={selected} onClose={() => {}} />
+                {/* By Owner */}
+                <div className="flex flex-col gap-4">
+                  <span className="text-[10px] font-semibold text-white">By owner</span>
+                  <div className="flex flex-col gap-2">
+                    {approvalsInsights.byOwner.map((item, i) => (
+                      <div key={i} className="flex items-center gap-3 text-[9px]">
+                        <span className="text-muted-foreground w-20 truncate">{item.label}</span>
+                        <div className="flex-1 h-1.5 bg-[#1E2730] rounded-full overflow-hidden flex items-center">
+                          <div className="h-full bg-primary rounded-full" style={{ width: `${(item.value / item.max) * 100}%` }} />
+                        </div>
+                        <span className="text-white tabular-nums font-bold w-4 text-right">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* By Urgency */}
+                <div className="flex flex-col gap-4 pl-4 border-l border-[#1E2730]">
+                  <span className="text-[10px] font-semibold text-white">By urgency</span>
+                  <div className="flex items-center gap-6">
+                    <div className="relative flex size-20 shrink-0">
+                      <svg viewBox="0 0 36 36" className="size-full -rotate-90">
+                        {(() => {
+                          let offset = 0;
+                          return approvalsInsights.byUrgency.map((item, i) => {
+                            const val = item.pct;
+                            const stroke = item.color;
+                            const path = <path key={i} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={stroke} strokeWidth="6" strokeDasharray={`${val}, 100`} strokeDashoffset={`-${offset}`} />;
+                            offset += val;
+                            return path;
+                          });
+                        })()}
+                      </svg>
+                    </div>
+                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                      {approvalsInsights.byUrgency.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between text-[9px]">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                            <span className="text-white truncate">{item.label}</span>
+                          </div>
+                          <span className="text-muted-foreground tabular-nums shrink-0">{item.value} ({item.pct}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Detail Panel */}
+        {selectedItem && (
+          <div className="w-[440px] shrink-0 h-full animate-fade-left">
+            <DetailPanel
+              item={selectedItem}
+              onClose={() => setSelectedId(null)}
+              onUpdateState={updateState}
+            />
+          </div>
+        )}
       </div>
-
-      {/* ── Insights ── */}
-      <InsightsSection />
     </div>
   );
 }

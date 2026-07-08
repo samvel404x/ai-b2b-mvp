@@ -3,600 +3,759 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-  Activity, ArrowUpRight, ArrowDownRight, Check, CheckCircle2, ChevronDown,
-  Code2, Copy, Database, Edit2, Eye, EyeOff, ExternalLink, FileText,
-  Filter, Globe, Lock, MoreHorizontal, Pause, Play, Plus, RefreshCw,
-  RotateCcw, Search, Send, Settings, Shield, ShoppingCart, TrendingUp,
-  Wifi, Zap, ArrowRight, BarChart2, Clock, AlertTriangle,
+  Database, FileText, Globe, Code2, TrendingUp, Zap, Check, CheckCircle2,
+  Settings, Activity, Shield, AlertCircle, ArrowUpRight, ArrowDownRight,
+  FileSpreadsheet, Lock, ExternalLink, ChevronRight, Pause, RotateCcw,
+  RefreshCw, Copy, Search, HelpCircle, Eye, ArrowRight, MoreHorizontal,
+  Mail, Cloud, FileImage, MessageSquare
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   connectorsKpis, connectorCatalog, connectorLocked,
-  connectorDetail, connectorHealthPanel,
+  connectorDetail, connectorHealthPanel, liveEvents
 } from "@/lib/genius-data";
-import { Panel, StatusDot, Sparkline, Ring } from "../shared";
-import { cn } from "@/lib/utils";
+import { Ring, Sparkline } from "../shared";
+import { Button } from "@/components/ui/button";
 
-// ── Tone helpers ─────────────────────────────────────────────────────────────
-const toneText  = { primary: "text-primary", critical: "text-critical", evidence: "text-evidence", warning: "text-warning", neutral: "text-foreground" };
-const toneStroke = { primary: "var(--primary)", critical: "var(--critical)", evidence: "var(--evidence)", warning: "var(--warning)", neutral: "var(--muted-foreground)" };
-const toneAccent = { primary: "stat-accent-primary", critical: "stat-accent-critical", warning: "stat-accent-warning", evidence: "stat-accent-evidence" };
-const toneRing   = { primary: "var(--primary)", critical: "var(--critical)", evidence: "var(--evidence)", warning: "var(--warning)", neutral: "var(--muted-foreground)" };
-const toneBg     = { primary: "bg-primary/10 text-primary border-primary/20", critical: "bg-critical/10 text-critical border-critical/20", evidence: "bg-evidence/10 text-evidence border-evidence/20", warning: "bg-warning/10 text-warning border-warning/20" };
-
-// ── KPI Strip ────────────────────────────────────────────────────────────────
-function KpiStrip() {
-  return (
-    <div className="grid grid-cols-4 gap-3 lg:grid-cols-8">
-      {connectorsKpis.map((kpi, i) => (
-        <div
-          key={kpi.id}
-          className={cn(
-            "group relative flex animate-fade-up flex-col gap-2 overflow-hidden rounded-xl border border-[#ffffff08] bg-[#0a0c0b] p-3.5 transition-all duration-200 hover:border-[#1a2820] hover:bg-[#0d0f0e]",
-            toneAccent[kpi.tone],
-          )}
-          style={{ animationDelay: `${i * 50}ms` }}
-        >
-          <span className="text-[10px] font-medium text-[#4a5450] leading-tight">{kpi.label}</span>
-          <div className="flex items-end justify-between gap-1">
-            <span className={cn("text-[18px] font-semibold leading-none tabular", toneText[kpi.tone])}>{kpi.value}</span>
-            <Ring value={kpi.ring} size={38} stroke={toneRing[kpi.tone]} />
-          </div>
-          {kpi.spark && <Sparkline data={kpi.spark} stroke={toneStroke[kpi.tone]} className="h-5 w-full" />}
-          <div className="flex items-center gap-1">
-            {kpi.trendDir === "up"   && <ArrowUpRight   className={cn("size-3 shrink-0", kpi.tone === "critical" ? "text-critical" : "text-primary")} />}
-            {kpi.trendDir === "down" && <ArrowDownRight className="size-3 shrink-0 text-critical" />}
-            <span className="text-[10px] text-[#4a5450] leading-tight truncate">{kpi.trend}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Catalog icon ─────────────────────────────────────────────────────────────
 const catalogIconMap = {
-  xlsx:    { Icon: FileText,    color: "text-[#1fd672]",  bg: "bg-[#1fd672]/10" },
-  gsheet:  { Icon: FileText,    color: "text-[#4ade80]",  bg: "bg-[#4ade80]/10" },
-  finance: { Icon: Database,    color: "text-[#38bdf8]",  bg: "bg-[#38bdf8]/10" },
-  crm:     { Icon: TrendingUp,  color: "text-[#e0b341]",  bg: "bg-[#e0b341]/10" },
-  webhook: { Icon: Code2,       color: "text-[#1fd672]",  bg: "bg-[#1fd672]/10" },
-  url:     { Icon: Globe,       color: "text-[#38bdf8]",  bg: "bg-[#38bdf8]/10" },
+  xlsx:    { Icon: FileSpreadsheet, color: "text-[#22C55E]" },
+  gsheet:  { Icon: FileSpreadsheet, color: "text-primary" },
+  finance: { Icon: Database,    color: "text-[#38BDF8]" },
+  crm:     { Icon: Cloud,  color: "text-[#3b82f6]" },
+  webhook: { Icon: Code2,       color: "text-primary" },
+  url:     { Icon: Globe,       color: "text-warning" },
 };
 
-// ── Connector Catalog Sidebar ─────────────────────────────────────────────────
-function ConnectorCatalog({ selected, onSelect }) {
-  const [search, setSearch] = useState("");
+function KpiCard({ kpi, index }) {
+  const trendUp = kpi.trendDir === "up";
+  const trendDown = kpi.trendDir === "down";
+
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-[#ffffff08] bg-[#0a0c0b] animate-fade-up" style={{ animationDelay: "100ms" }}>
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-[#ffffff06] px-4 py-3">
-        <span className="text-sm font-semibold text-foreground">Connector catalog</span>
-        <Settings className="size-4 text-[#4a5450] cursor-pointer hover:text-foreground transition-colors" />
-      </div>
-
-      {/* Search */}
-      <div className="px-3 pt-3 pb-2">
-        <div className="relative flex items-center">
-          <Search className="absolute left-2.5 size-3.5 text-[#4a5450]" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search connectors..."
-            className="h-8 w-full rounded-lg border border-[#ffffff08] bg-[#0d0f0e] pl-8 pr-3 text-xs text-foreground placeholder-[#3a4040] outline-none focus:border-primary/30 transition-colors"
-          />
-          <ChevronDown className="absolute right-2.5 size-3 text-[#4a5450]" />
+    <div
+      onClick={() => toast(`Viewing KPI: ${kpi.label}`)}
+      className="group relative flex flex-col gap-2 overflow-hidden rounded-xl border border-[#1E2730] bg-[#0A0C0B] p-3 transition-all hover:bg-[#141B21] hover:border-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.03)] min-w-[170px] flex-1 cursor-pointer animate-fade-up"
+      style={{ animationDelay: `${index * 40}ms` }}
+    >
+      <div className="flex items-center gap-2">
+        <div className="transition-transform duration-500 group-hover:scale-110">
+           <Ring value={kpi.ring} size={36} stroke={`var(--${kpi.tone})`} />
+        </div>
+        <div className="flex flex-col gap-0 min-w-0">
+          <span className="truncate text-[9px] font-semibold uppercase tracking-widest text-muted-foreground leading-snug">
+            {kpi.label}
+          </span>
+          <span className="text-lg font-bold tabular-nums leading-tight text-white">
+            {kpi.value}
+          </span>
         </div>
       </div>
-
-      {/* Active connectors */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin px-3 pb-3 flex flex-col gap-3">
-        {Object.entries(connectorCatalog).map(([group, items]) => {
-          const filtered = items.filter(c =>
-            !search || c.name.toLowerCase().includes(search.toLowerCase())
-          );
-          if (!filtered.length) return null;
-          return (
-            <div key={group}>
-              <p className="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#3a4040]">{group}</p>
-              <div className="flex flex-col gap-1">
-                {filtered.map((c) => {
-                  const cfg = catalogIconMap[c.icon] || { Icon: Zap, color: "text-foreground", bg: "bg-white/5" };
-                  const isActive = selected === c.id;
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => onSelect(c.id)}
-                      className={cn(
-                        "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all duration-150",
-                        isActive
-                          ? "bg-primary/8 border border-primary/15"
-                          : "border border-transparent hover:bg-white/4 hover:border-[#ffffff08]",
-                      )}
-                    >
-                      <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md", cfg.bg)}>
-                        <cfg.Icon className={cn("size-4", cfg.color)} />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-medium text-foreground truncate">{c.name}</span>
-                        </div>
-                        <p className="text-[10px] text-[#4a5450] truncate">{c.desc}</p>
-                      </div>
-                      <span className="flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary shrink-0">
-                        <span className="size-1.5 rounded-full bg-primary" />
-                        {c.status}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Future connectors locked */}
-        <div>
-          <p className="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#3a4040]">Future Connectors (Locked)</p>
-          <div className="flex flex-col gap-1">
-            {connectorLocked.map((c) => (
-              <div key={c.id} className="flex items-center gap-3 rounded-lg border border-transparent px-3 py-2 opacity-50">
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#131614] text-[#3a4040]">
-                  <Lock className="size-3.5" />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-[#4a5450] truncate">{c.name}</p>
-                  <p className="text-[10px] text-[#3a4040] truncate">{c.desc}</p>
-                </div>
-                <span className="flex items-center gap-1 rounded-full border border-[#2a2f2d] px-2 py-0.5 text-[10px] text-[#3a4040] shrink-0">
-                  <Lock className="size-2.5" /> Locked
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Request */}
-        <button
-          type="button"
-          onClick={() => toast.success("Request submitted!")}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#ffffff0a] py-2.5 text-xs text-[#4a5450] transition-colors hover:border-primary/20 hover:text-primary"
+      <div className="flex items-center justify-between gap-1 mt-1">
+        <span
+          className={cn(
+            "flex items-center gap-0.5 text-[9px] font-semibold tabular-nums",
+            trendUp ? "text-primary" : trendDown ? "text-critical" : "text-muted-foreground"
+          )}
         >
-          <Plus className="size-3.5" />
-          Request a connector
-        </button>
+          {trendUp && <ArrowUpRight className="size-3" />}
+          {trendDown && <ArrowDownRight className="size-3" />}
+          {kpi.trend}
+        </span>
+        <span className="text-[9px] text-muted-foreground truncate max-w-[80px]">
+          {kpi.sub}
+        </span>
       </div>
+      {kpi.spark && (
+        <div className="absolute bottom-0 left-0 right-0 h-8 opacity-20 group-hover:opacity-40 transition-opacity">
+          <Sparkline data={kpi.spark} color={`var(--${kpi.tone})`} />
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Active Connector Tabs ────────────────────────────────────────────────────
-const TABS = ["Schema mapping", "Event stream", "Logs", "Transformations", "Filters (3)"];
+export default function Connectors({ onNavigate }) {
+  const [activeTab, setActiveTab] = useState("Schema mapping");
+  const [activeConnectorId, setActiveConnectorId] = useState("c-biz");
+  const [isTesting, setIsTesting] = useState(false);
 
-function ConnectorViewer() {
-  const [tab, setTab] = useState("Schema mapping");
-  const [streaming, setStreaming] = useState(true);
-  const detail = connectorDetail;
+  const handleTabClick = (tab) => {
+    setActiveTab(tab);
+    toast(`Navigated to ${tab}`);
+  };
+
+  const handleConnectorClick = (id, name) => {
+    setActiveConnectorId(id);
+    toast(`Switched to connector: ${name}`);
+  };
+
+  const copyToClipboard = (text, label) => {
+    navigator.clipboard.writeText(text);
+    toast(`${label} copied to clipboard`);
+  };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-[#ffffff08] bg-[#0a0c0b] animate-fade-up" style={{ animationDelay: "150ms" }}>
+    <div className="flex flex-col gap-6 h-full overflow-y-auto scrollbar-thin p-6 pb-2 bg-[#040504]">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 border-b border-[#ffffff06] px-5 py-3.5">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <Code2 className="size-4 text-primary" />
-          </span>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-foreground">{detail.name}</h2>
-              <span className="flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                <span className="size-1.5 animate-pulse rounded-full bg-primary" /> Active
-              </span>
-            </div>
-            <p className="text-[11px] text-[#4a5450]">{detail.description}</p>
+      <header className="flex items-start justify-between shrink-0 animate-fade-in">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold text-white">
+            <span className="text-muted-foreground">Connectors /</span> Business Live
+          </h1>
+          <p className="text-[11px] text-muted-foreground">Connect, sync, and manage your business data sources.</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 rounded-full border border-[#1E2730] bg-[#0A0C0B] px-3 py-1.5 transition-all hover:bg-[#141B21] cursor-pointer" onClick={() => toast("Provider info clicked")}>
+             <div className="size-4 rounded-full bg-primary/20 flex items-center justify-center"><Zap className="size-2.5 text-primary" /></div>
+             <div className="flex flex-col gap-0 leading-none">
+               <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-widest">Provider</span>
+               <span className="text-[10px] font-semibold text-white">Gemini 1.5 Pro</span>
+             </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-[#1E2730] bg-[#0A0C0B] px-3 py-1.5 transition-all hover:bg-[#141B21] cursor-pointer" onClick={() => toast("Database info clicked")}>
+             <div className="size-4 rounded-full bg-[#21A366]/20 flex items-center justify-center"><Database className="size-2.5 text-[#21A366]" /></div>
+             <div className="flex flex-col gap-0 leading-none">
+               <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-widest">Database</span>
+               <span className="text-[10px] font-semibold text-white">Supabase</span>
+             </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-[#1E2730] bg-[#0A0C0B] px-3 py-1.5 transition-all hover:bg-[#141B21] cursor-pointer" onClick={() => toast("Health info clicked")}>
+             <div className="size-4 rounded-full bg-primary/20 flex items-center justify-center"><CheckCircle2 className="size-2.5 text-primary" /></div>
+             <div className="flex flex-col gap-0 leading-none">
+               <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-widest">Connector health</span>
+               <span className="text-[10px] font-semibold text-white">98%</span>
+             </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-[#1E2730] bg-[#0A0C0B] px-3 py-1.5 transition-all hover:bg-[#141B21] cursor-pointer" onClick={() => toast("Quality info clicked")}>
+             <div className="size-4 rounded-full bg-primary/20 flex items-center justify-center"><CheckCircle2 className="size-2.5 text-primary" /></div>
+             <div className="flex flex-col gap-0 leading-none">
+               <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-widest">Data quality</span>
+               <span className="text-[10px] font-semibold text-primary flex items-center gap-1">Good (84%)</span>
+             </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-[#1E2730] bg-[#0A0C0B] px-3 py-1.5 transition-all hover:bg-[#141B21] cursor-pointer group" onClick={() => toast("Manual sync triggered")}>
+             <div className="size-4 rounded-full bg-[#1E2730] flex items-center justify-center group-hover:bg-primary/20 transition-colors"><RefreshCw className="size-2.5 text-muted-foreground group-hover:text-primary transition-colors" /></div>
+             <div className="flex flex-col gap-0 leading-none">
+               <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-widest">Last sync</span>
+               <span className="text-[10px] font-semibold text-white">2m ago</span>
+             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button type="button" onClick={() => toast.success("Opening docs...")} className="flex items-center gap-1.5 rounded-lg border border-[#ffffff08] bg-[#0d0f0e] px-3 py-1.5 text-xs text-[#8a9490] hover:text-foreground transition-colors">
-            <FileText className="size-3" /> View docs
-          </button>
-          <button type="button" onClick={() => toast.success("Opening settings...")} className="flex items-center gap-1.5 rounded-lg border border-[#ffffff08] bg-[#0d0f0e] px-3 py-1.5 text-xs text-[#8a9490] hover:text-foreground transition-colors">
-            <Settings className="size-3" /> Connector settings
-          </button>
-          <button type="button" className="flex size-7 items-center justify-center rounded-lg border border-[#ffffff08] bg-[#0d0f0e] text-[#5a6660] hover:text-foreground transition-colors">
-            <MoreHorizontal className="size-4" />
-          </button>
-        </div>
-      </div>
+      </header>
 
-      {/* Setup checklist */}
-      <div className="border-b border-[#ffffff06] px-5 py-4">
-        <p className="mb-3 text-xs font-semibold text-foreground">Setup checklist</p>
-        <div className="flex items-start gap-0">
-          {detail.checklist.map((step, i) => (
-            <div key={step.label} className="flex flex-1 flex-col items-center gap-2">
-              <div className="flex w-full items-center">
-                {i > 0 && <div className={cn("h-px flex-1 transition-all duration-500", step.done ? "bg-primary/40" : "bg-[#1a1f1d]")} style={{ animationDelay: `${i * 80}ms` }} />}
-                <span className={cn(
-                  "relative flex size-7 shrink-0 items-center justify-center rounded-full border transition-all duration-300",
-                  step.done ? "border-primary/30 bg-primary/15" : "border-[#1a1f1d] bg-[#0d0f0e]",
-                )}>
-                  <CheckCircle2 className={cn("size-4 transition-colors", step.done ? "text-primary" : "text-[#3a4040]")} />
-                  {step.done && <span className="absolute inset-0 rounded-full animate-pulse-ring" />}
-                </span>
-                {i < detail.checklist.length - 1 && <div className={cn("h-px flex-1", step.done && detail.checklist[i + 1]?.done ? "bg-primary/40" : "bg-[#1a1f1d]")} />}
-              </div>
-              <div className="flex flex-col items-center text-center px-1">
-                <span className={cn("text-[10px] font-semibold leading-tight", step.done ? "text-foreground" : "text-[#4a5450]")}>{step.label}</span>
-                <span className={cn("text-[9px] leading-tight mt-0.5", step.done ? "text-primary" : "text-[#3a4040]")}>{step.sub}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 flex justify-end">
-          <button type="button" className="text-[11px] text-evidence hover:text-evidence/70 transition-colors">
-            View setup guide →
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-0 border-b border-[#ffffff06] px-5">
-        {TABS.map(t => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            className={cn(
-              "border-b-2 px-3 py-2.5 text-xs font-medium transition-all",
-              tab === t
-                ? "border-primary text-primary"
-                : "border-transparent text-[#5a6660] hover:text-foreground",
-            )}
-          >
-            {t}
-          </button>
+      {/* KPI Strip */}
+      <div className="flex items-center gap-4 overflow-x-auto scrollbar-thin pb-2 shrink-0">
+        {connectorsKpis.map((kpi, i) => (
+          <KpiCard key={kpi.id} kpi={kpi} index={i} />
         ))}
       </div>
 
-      {/* Tab content — schema mapping */}
-      {tab === "Schema mapping" && (
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
-          <table className="w-full text-xs">
-            <thead className="sticky top-0 z-10 bg-[#0a0c0b]">
-              <tr className="border-b border-[#ffffff06]">
-                {["PAYLOAD FIELD", "EXAMPLE VALUE", "MAPPED TO", "DATA TYPE", "REQUIRED", "ACTIONS"].map(col => (
-                  <th key={col} className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-widest text-[#3a4040]">{col}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {detail.schemaMapping.map((row, i) => (
-                <tr
-                  key={row.field}
-                  className="animate-fade-up border-b border-[#ffffff04] table-row-hover group"
-                  style={{ animationDelay: `${i * 40}ms` }}
-                >
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <MoreHorizontal className="size-3 text-[#3a4040] opacity-0 group-hover:opacity-100 transition-opacity cursor-grab" />
-                      <span className="font-mono text-[11px] text-foreground">{row.field}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 font-mono text-[11px] text-[#5a6660]">{row.example}</td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-1.5 rounded-md border border-[#ffffff08] bg-[#0d0f0e] px-2 py-1 w-fit">
-                      <span className="text-[11px] text-foreground">{row.mappedTo}</span>
-                      <ChevronDown className="size-2.5 text-[#4a5450]" />
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <span className="rounded-md border border-[#ffffff06] bg-[#131614] px-2 py-0.5 text-[10px] font-mono text-[#5a6660]">{row.dataType}</span>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <span className={cn(
-                      "flex size-5 items-center justify-center rounded border",
-                      row.required ? "border-primary/30 bg-primary/15" : "border-[#1a1f1d] bg-[#0d0f0e]",
-                    )}>
-                      {row.required && <Check className="size-3 text-primary" />}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <Edit2 className="size-3.5 text-[#3a4040] hover:text-foreground cursor-pointer transition-colors" />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="px-4 py-3">
-            <button
-              type="button"
-              onClick={() => toast.success("Field added")}
-              className="flex items-center gap-1.5 text-[11px] text-[#4a5450] hover:text-primary transition-colors"
-            >
-              <Plus className="size-3.5" /> Add field mapping
-            </button>
+      {/* Main 3-Column Layout */}
+      <div className="flex gap-6 min-h-[700px] mb-2 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+        
+        {/* LEFT SIDEBAR: Connector Catalog */}
+        <div className="w-[280px] flex flex-col gap-4 shrink-0">
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <input 
+              type="text" 
+              placeholder="Search connectors..." 
+              className="w-full bg-[#0A0C0B] border border-[#1E2730] rounded-lg pl-9 pr-4 py-2 text-[11px] text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
+            />
           </div>
-          <div className="border-t border-[#ffffff06] px-4 py-3 flex justify-end">
-            <button
-              type="button"
-              onClick={() => toast.success("Mapping validated!")}
-              className="flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/10 px-4 py-2 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
-            >
-              <Check className="size-3.5" /> Validate mapping
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* Tab content — event stream */}
-      {tab === "Event stream" && (
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[#ffffff06] px-4 py-2.5">
-            <div className="flex items-center gap-2">
-              <span className="size-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-xs font-semibold text-foreground">Live event stream</span>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Live</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => setStreaming(s => !s)} className="flex items-center gap-1.5 rounded-md border border-[#ffffff08] px-2.5 py-1 text-[11px] text-[#8a9490] hover:text-foreground transition-colors">
-                {streaming ? <Pause className="size-3" /> : <Play className="size-3" />}
-                {streaming ? "Pause" : "Resume"}
-              </button>
-              <button type="button" className="rounded-md border border-[#ffffff08] px-2.5 py-1 text-[11px] text-[#8a9490] hover:text-foreground transition-colors">Clear</button>
-              <div className="flex items-center gap-1 rounded-md border border-[#ffffff08] px-2.5 py-1 text-[11px] text-[#8a9490]">
-                All events <ChevronDown className="size-3" />
+          <div className="flex flex-col flex-1 overflow-y-auto scrollbar-thin pr-2 gap-6">
+            {Object.entries(connectorCatalog).map(([category, items]) => (
+              <div key={category} className="flex flex-col gap-2">
+                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest pl-1">{category}</span>
+                <div className="flex flex-col gap-1">
+                  {items.map(item => {
+                    const isActive = item.id === activeConnectorId;
+                    const cfg = catalogIconMap[item.icon] || { Icon: FileText, color: "text-white" };
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleConnectorClick(item.id, item.name)}
+                        className={cn(
+                          "group flex items-center justify-between p-2 rounded-lg text-left transition-all border",
+                          isActive 
+                            ? "bg-[#141B21] border-[#1E2730] shadow-[0_0_10px_rgba(255,255,255,0.02)]" 
+                            : "border-transparent hover:bg-white/[0.03] hover:border-white/5"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "size-6 rounded bg-[#0A0C0B] flex items-center justify-center border transition-colors", 
+                            isActive ? "border-primary/50 shadow-[0_0_8px_rgba(33,163,102,0.15)]" : "border-[#1E2730] group-hover:border-white/20"
+                          )}>
+                            <cfg.Icon className={cn("size-3.5", cfg.color)} />
+                          </div>
+                          <div className="flex flex-col gap-0">
+                            <span className={cn("text-[11px] font-semibold transition-colors", isActive ? "text-white" : "text-muted-foreground group-hover:text-white")}>{item.name}</span>
+                            <span className="text-[9px] text-muted-foreground">{item.desc}</span>
+                          </div>
+                        </div>
+                        <span className="flex items-center gap-1 text-[9px] text-primary font-bold uppercase tracking-widest">
+                          <span className={cn("size-1.5 rounded-full transition-colors", isActive ? "bg-primary shadow-[0_0_5px_rgba(33,163,102,0.8)]" : "bg-primary/50")} /> {item.status}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-[#1E2730]">
+              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest pl-1">FUTURE CONNECTORS (LOCKED)</span>
+              <div className="flex flex-col gap-1">
+                {connectorLocked.map(item => (
+                  <button 
+                    key={item.id} 
+                    onClick={() => toast("This connector is currently locked in your plan.")}
+                    className="flex items-center justify-between p-2 rounded-lg text-left opacity-50 hover:opacity-80 transition-opacity grayscale hover:bg-white/[0.02]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="size-6 rounded bg-[#0A0C0B] flex items-center justify-center border border-[#1E2730]">
+                        <Lock className="size-3 text-muted-foreground" />
+                      </div>
+                      <div className="flex flex-col gap-0">
+                        <span className="text-[11px] font-semibold text-muted-foreground">{item.name}</span>
+                        <span className="text-[9px] text-muted-foreground">{item.desc}</span>
+                      </div>
+                    </div>
+                    <span className="flex items-center gap-1 text-[9px] text-muted-foreground font-bold uppercase tracking-widest">
+                       <Lock className="size-2" /> Locked
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
+            
+            <Button 
+              variant="outline" 
+              onClick={() => toast("Connector request form opened")}
+              className="w-full text-[11px] border-[#1E2730] bg-[#0A0C0B] hover:bg-[#141B21] hover:text-white hover:border-white/20 transition-all mt-4"
+            >
+              Request a connector
+            </Button>
           </div>
-          <div className="flex-1 overflow-y-auto scrollbar-thin">
-            <table className="w-full text-xs">
-              <thead className="sticky top-0 z-10 bg-[#0a0c0b] border-b border-[#ffffff06]">
-                <tr>
-                  {["TIME (LIVE)", "EVENT TYPE", "SOURCE", "ORDER / REF ID", "CUSTOMER", "AMOUNT", "STATUS", "INGESTION", "ACTIONS"].map(col => (
-                    <th key={col} className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-widest text-[#3a4040]">{col}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {detail.eventStream.map((ev, i) => (
-                  <tr key={i} className="animate-fade-up border-b border-[#ffffff04] table-row-hover" style={{ animationDelay: `${i * 60}ms` }}>
-                    <td className="px-3 py-2.5 font-mono text-[11px] text-[#5a6660]">{ev.time}</td>
-                    <td className="px-3 py-2.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="size-1.5 rounded-full bg-primary" />
-                        <span className="font-mono text-[11px] text-foreground">{ev.type}</span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2.5 text-[11px] text-[#5a6660]">{ev.source}</td>
-                    <td className="px-3 py-2.5 font-mono text-[11px] text-evidence">{ev.orderId}</td>
-                    <td className="px-3 py-2.5 text-[11px] text-[#8a9490] truncate max-w-[120px]">{ev.customer}</td>
-                    <td className={cn("px-3 py-2.5 font-mono text-[11px] font-semibold tabular", ev.amount.startsWith("-") ? "text-critical" : "text-foreground")}>{ev.amount}</td>
-                    <td className="px-3 py-2.5">
-                      <span className={cn(
-                        "rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                        ev.status === "completed" ? "bg-primary/10 text-primary" :
-                        ev.status === "refunded"  ? "bg-critical/10 text-critical" :
-                        ev.status === "reserved"  ? "bg-warning/10 text-warning" :
-                        "bg-evidence/10 text-evidence",
-                      )}>{ev.status}</span>
-                    </td>
-                    <td className="px-3 py-2.5 text-[11px] text-[#4a5450]">{ev.ingestion}</td>
-                    <td className="px-3 py-2.5">
-                      <Eye className="size-3.5 text-[#3a4040] hover:text-foreground cursor-pointer transition-colors" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        </div>
+
+        {/* CENTER PANEL: Main Connector Setup & Details */}
+        <div className="flex-1 flex flex-col rounded-xl border border-[#1E2730] bg-[#0A0C0B] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+          {/* Header */}
+          <div className="flex items-start justify-between p-6 border-b border-[#1E2730] bg-[#0A0C0B]">
+             <div className="flex items-center gap-4">
+               <div className="size-10 rounded-lg bg-[#141B21] border border-[#1E2730] shadow-[0_0_15px_rgba(33,163,102,0.05)] flex items-center justify-center">
+                 <Code2 className="size-5 text-primary" />
+               </div>
+               <div className="flex flex-col gap-1">
+                 <div className="flex items-center gap-3">
+                   <h2 className="text-lg font-bold text-white">{connectorDetail.name}</h2>
+                   <span className="flex items-center gap-1 text-[10px] text-primary font-bold uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded border border-primary/20 shadow-[0_0_10px_rgba(33,163,102,0.1)]">
+                     <span className="size-1.5 rounded-full bg-primary animate-pulse" /> {connectorDetail.status}
+                   </span>
+                 </div>
+                 <p className="text-[11px] text-muted-foreground">{connectorDetail.description}</p>
+               </div>
+             </div>
+             <div className="flex items-center gap-2">
+               <Button 
+                 variant="outline" 
+                 size="sm" 
+                 onClick={() => toast("Opening documentation...")}
+                 className="h-8 text-[11px] border-[#1E2730] bg-[#141B21] hover:bg-white/[0.05] hover:text-white hover:border-white/20 transition-all text-white"
+               >
+                 <FileText className="size-3.5 mr-1.5" /> View docs
+               </Button>
+               <Button 
+                 variant="outline" 
+                 size="sm" 
+                 onClick={() => toast("Opening connector settings...")}
+                 className="h-8 text-[11px] border-[#1E2730] bg-[#141B21] hover:bg-white/[0.05] hover:text-white hover:border-white/20 transition-all text-white"
+               >
+                 <Settings className="size-3.5 mr-1.5" /> Connector settings
+               </Button>
+               <Button 
+                 variant="outline" 
+                 size="icon" 
+                 onClick={() => toast("More options...")}
+                 className="h-8 w-8 border-[#1E2730] bg-[#141B21] hover:bg-white/[0.05] hover:text-white hover:border-white/20 transition-all text-white"
+               >
+                 <MoreHorizontal className="size-3.5" />
+               </Button>
+             </div>
           </div>
-          <div className="flex items-center justify-between border-t border-[#ffffff06] px-4 py-2.5 text-[11px] text-[#4a5450]">
-            <button type="button" className="text-primary hover:text-primary/70 transition-colors">
-              View all events →
-            </button>
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-primary animate-pulse" />
-                Streaming
-              </span>
-              <span>·</span>
-              <span>1,247 events today</span>
+
+          {/* Setup Checklist */}
+          <div className="flex flex-col gap-4 p-6 border-b border-[#1E2730] bg-gradient-to-b from-[#0A0C0B] to-[#141B21]/30">
+            <h3 className="text-[11px] font-bold text-white">Setup checklist</h3>
+            <div className="flex items-start justify-between relative mt-2">
+               <div className="absolute top-[9px] left-4 right-4 h-px bg-[#1E2730] z-0" />
+               {connectorDetail.checklist.map((step, idx) => (
+                 <div key={idx} className="flex flex-col items-center gap-2 relative z-10 w-24 group cursor-pointer" onClick={() => toast(`Checklist step: ${step.label}`)}>
+                   <div className={cn(
+                     "flex items-center justify-center size-5 rounded-full border-2 bg-[#0A0C0B] transition-all duration-300",
+                     step.done 
+                       ? "border-primary text-primary shadow-[0_0_10px_rgba(33,163,102,0.3)] group-hover:bg-primary/10" 
+                       : "border-[#1E2730] text-muted-foreground group-hover:border-white/30 group-hover:text-white/70"
+                   )}>
+                     <Check className="size-3" strokeWidth={3} />
+                   </div>
+                   <div className="flex flex-col items-center text-center gap-0.5">
+                     <span className={cn(
+                       "text-[10px] font-bold leading-tight transition-colors", 
+                       step.done ? "text-white" : "text-muted-foreground group-hover:text-white/70"
+                     )}>{step.label}</span>
+                     <span className={cn(
+                       "text-[9px] transition-colors", 
+                       step.done ? "text-primary" : "text-muted-foreground"
+                     )}>{step.sub}</span>
+                   </div>
+                 </div>
+               ))}
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Other tabs placeholder */}
-      {tab !== "Schema mapping" && tab !== "Event stream" && (
-        <div className="flex flex-1 items-center justify-center">
-          <div className="flex flex-col items-center gap-2 text-center">
-            <Activity className="size-8 text-[#3a4040]" />
-            <p className="text-sm font-medium text-[#4a5450]">{tab}</p>
-            <p className="text-xs text-[#3a4040]">Data loading...</p>
+          {/* Tabs */}
+          <div className="flex items-center justify-between border-b border-[#1E2730] px-4 bg-[#0A0C0B]">
+             <div className="flex items-center gap-6">
+               {["Schema mapping", "Event stream", "Logs", "Transformations", "Filters (3)"].map(tab => (
+                 <button
+                   key={tab}
+                   onClick={() => handleTabClick(tab)}
+                   className={cn(
+                     "px-2 py-3 text-[11px] font-semibold border-b-2 transition-all relative overflow-hidden",
+                     activeTab === tab 
+                       ? "border-primary text-primary" 
+                       : "border-transparent text-muted-foreground hover:text-white hover:border-white/20"
+                   )}
+                 >
+                   {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary shadow-[0_0_8px_rgba(33,163,102,1)]" />}
+                   {tab}
+                 </button>
+               ))}
+             </div>
+             <button 
+               onClick={() => toast("Opening setup guide")}
+               className="text-[10px] text-[#3b82f6] hover:text-[#60a5fa] transition-colors flex items-center gap-1 font-medium group"
+             >
+               <ExternalLink className="size-3 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" /> View setup guide
+             </button>
           </div>
-        </div>
-      )}
 
-      {/* Pipeline flow */}
-      <div className="border-t border-[#ffffff06] px-5 py-4">
-        <div className="flex items-center gap-0 overflow-x-auto scrollbar-thin">
-          {detail.pipeline.map((step, i) => (
-            <div key={step.step} className="flex items-center shrink-0">
-              <div className="flex flex-col items-center gap-2">
-                <div className="flex items-center gap-1 rounded-full border border-[#ffffff08] bg-[#0d0f0e] px-2 py-0.5">
-                  <span className="text-[10px] font-semibold text-primary">{step.step}</span>
-                  <span className="text-[10px] text-[#5a6660]">{step.label}</span>
+          {/* Tab Content: Switch content based on activeTab */}
+          <div className="flex-1 flex flex-col overflow-y-auto scrollbar-thin p-6 bg-gradient-to-b from-[#0A0C0B] to-[#040504] relative">
+            
+            {(activeTab === "Schema mapping" || activeTab === "Event stream") && (
+              <div className="flex flex-col gap-10 animate-fade-in">
+                {/* Schema Mapping Section */}
+                <div id="schema-mapping" className="flex flex-col gap-4">
+                  <table className="w-full text-left text-[10px]">
+                    <thead className="border-b border-[#1E2730] text-muted-foreground">
+                      <tr>
+                        <th className="pb-2 font-bold uppercase tracking-widest w-6"></th>
+                        <th className="pb-2 font-bold uppercase tracking-widest">Payload field</th>
+                        <th className="pb-2 font-bold uppercase tracking-widest">Example value</th>
+                        <th className="pb-2 font-bold uppercase tracking-widest">Mapped to</th>
+                        <th className="pb-2 font-bold uppercase tracking-widest">Data type</th>
+                        <th className="pb-2 font-bold uppercase tracking-widest text-center">Required</th>
+                        <th className="pb-2 font-bold uppercase tracking-widest text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#1E2730]/50">
+                      {connectorDetail.schemaMapping.map((row, i) => (
+                        <tr key={i} className="group hover:bg-white/[0.03] transition-colors cursor-pointer" onClick={() => toast(`Editing field mapping: ${row.field}`)}>
+                          <td className="py-2.5 text-muted-foreground"><MoreHorizontal className="size-3 opacity-30 group-hover:opacity-100 transition-opacity" /></td>
+                          <td className="py-2.5 font-semibold text-white group-hover:text-primary transition-colors">{row.field}</td>
+                          <td className="py-2.5 text-muted-foreground tabular-nums group-hover:text-white/80 transition-colors">{row.example}</td>
+                          <td className="py-2.5">
+                             <div className="flex items-center justify-between border border-[#1E2730] group-hover:border-white/20 transition-colors rounded bg-[#141B21] px-2 py-1 max-w-[140px]">
+                               <span className="text-white font-medium">{row.mappedTo}</span>
+                               <ChevronRight className="size-3 text-muted-foreground rotate-90" />
+                             </div>
+                          </td>
+                          <td className="py-2.5 text-muted-foreground"><span className="px-1.5 py-0.5 rounded bg-[#141B21] border border-[#1E2730]">{row.dataType}</span></td>
+                          <td className="py-2.5 text-center">
+                            {row.required ? <Check className="size-3.5 text-primary mx-auto" /> : <span className="text-muted-foreground">-</span>}
+                          </td>
+                          <td className="py-2.5 text-right">
+                            <button 
+                              className="text-muted-foreground hover:text-white p-1 rounded hover:bg-[#141B21] transition-all"
+                              onClick={(e) => { e.stopPropagation(); toast(`Settings for ${row.field}`); }}
+                            >
+                              <Settings className="size-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  <div className="flex items-center justify-between mt-2 pt-4 border-t border-[#1E2730]">
+                     <button 
+                       onClick={() => toast("Add field mapping")}
+                       className="text-[10px] text-muted-foreground hover:text-white flex items-center gap-1.5 font-medium group transition-colors"
+                     >
+                       <div className="flex items-center justify-center size-4 rounded bg-[#1E2730] group-hover:bg-primary group-hover:text-white transition-colors"><Check className="size-2.5" /></div>
+                       Add field mapping
+                     </button>
+                     <Button 
+                       variant="outline" 
+                       size="sm" 
+                       onClick={() => toast("Validating mapping configuration...")}
+                       className="h-7 text-[10px] border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary/50 transition-all hover:shadow-[0_0_10px_rgba(33,163,102,0.2)]"
+                     >
+                       <Check className="size-3 mr-1.5" /> Validate mapping
+                     </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 rounded-lg border border-[#ffffff06] bg-[#0d0f0e] px-3 py-2 min-w-[110px]">
-                  {step.icon === "cart"    && <ShoppingCart className="size-4 text-primary shrink-0" />}
-                  {step.icon === "doc"     && <FileText      className="size-4 text-evidence shrink-0" />}
-                  {step.icon === "chart"   && <BarChart2     className="size-4 text-[#e0b341] shrink-0" />}
-                  {step.icon === "shield"  && <Shield        className="size-4 text-primary shrink-0" />}
-                  {step.icon === "check"   && <CheckCircle2  className="size-4 text-primary shrink-0" />}
-                  {step.icon === "trail"   && <FileText      className="size-4 text-evidence shrink-0" />}
-                  <div className="flex flex-col gap-0.5">
-                    {step.sub.split("\n").map((line, j) => (
-                      <span key={j} className={cn("text-[10px] leading-tight", j === 0 ? "font-semibold text-foreground" : "text-[#5a6660]")}>{line}</span>
-                    ))}
+                
+                {/* Event Stream Section */}
+                <div id="event-stream" className="flex flex-col gap-4 pt-4 border-t border-[#1E2730]">
+                  <div className="flex items-center justify-between mb-4">
+                     <h3 className="text-[11px] font-bold text-white flex items-center gap-2">
+                       Live event stream <span className="flex items-center gap-1 text-[9px] text-primary uppercase tracking-widest px-2 py-0.5 rounded border border-primary/20 bg-primary/10"><span className="size-1.5 rounded-full bg-primary animate-pulse" /> Live</span>
+                     </h3>
+                     <div className="flex items-center gap-2">
+                       <Button variant="outline" size="sm" onClick={() => toast("Stream paused")} className="h-7 text-[10px] border-[#1E2730] bg-[#141B21] hover:bg-white/[0.05] hover:text-white transition-all text-white">
+                         <Pause className="size-3 mr-1.5" /> Pause
+                       </Button>
+                       <Button variant="outline" size="sm" onClick={() => toast("Stream cleared")} className="h-7 text-[10px] border-[#1E2730] bg-[#141B21] hover:bg-white/[0.05] hover:text-white transition-all text-white">
+                         <RotateCcw className="size-3 mr-1.5" /> Clear
+                       </Button>
+                       <div className="relative">
+                         <div 
+                           className="flex items-center justify-between border border-[#1E2730] hover:border-white/20 transition-colors rounded bg-[#141B21] px-2 py-1 w-24 h-7 cursor-pointer group/filter"
+                           onClick={() => toast("Filter dropdown opened")}
+                         >
+                           <span className="text-white text-[10px] font-medium">All events</span>
+                           <ChevronRight className="size-3 text-muted-foreground group-hover/filter:rotate-90 transition-transform" />
+                         </div>
+                       </div>
+                     </div>
+                  </div>
+                  
+                  <table className="w-full text-left text-[9px]">
+                    <thead className="border-b border-[#1E2730] text-muted-foreground">
+                      <tr>
+                        <th className="pb-2 font-bold uppercase tracking-widest">Time (Live)</th>
+                        <th className="pb-2 font-bold uppercase tracking-widest">Event Type</th>
+                        <th className="pb-2 font-bold uppercase tracking-widest">Source</th>
+                        <th className="pb-2 font-bold uppercase tracking-widest">Order / Ref ID</th>
+                        <th className="pb-2 font-bold uppercase tracking-widest">Customer</th>
+                        <th className="pb-2 font-bold uppercase tracking-widest text-right">Amount</th>
+                        <th className="pb-2 font-bold uppercase tracking-widest text-center">Status</th>
+                        <th className="pb-2 font-bold uppercase tracking-widest text-right">Ingestion</th>
+                        <th className="pb-2 font-bold uppercase tracking-widest text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#1E2730]/50">
+                      {connectorDetail.eventStream.map((ev, i) => (
+                        <tr key={i} className="group hover:bg-white/[0.03] transition-colors cursor-pointer" onClick={() => toast(`Viewing event: ${ev.orderId}`)}>
+                          <td className="py-2.5 tabular-nums text-muted-foreground group-hover:text-white/80 transition-colors">{ev.time}</td>
+                          <td className="py-2.5 text-white font-medium flex items-center gap-1.5">
+                            <span className="size-1 rounded-full bg-primary shadow-[0_0_5px_rgba(33,163,102,0.8)]" /> {ev.type}
+                          </td>
+                          <td className="py-2.5 text-muted-foreground"><span className="px-1.5 py-0.5 rounded bg-[#141B21] border border-[#1E2730]">{ev.source}</span></td>
+                          <td className="py-2.5 text-white tabular-nums font-mono">{ev.orderId}</td>
+                          <td className="py-2.5 text-muted-foreground">{ev.customer}</td>
+                          <td className="py-2.5 text-white font-bold tabular-nums text-right group-hover:text-primary transition-colors">{ev.amount}</td>
+                          <td className="py-2.5 text-center">
+                            <span className={cn(
+                              "px-2 py-0.5 rounded uppercase tracking-widest text-[8px] font-bold",
+                              ev.status === "completed" ? "text-primary bg-primary/10 border border-primary/20" : 
+                              ev.status === "refunded" ? "text-critical bg-critical/10 border border-critical/20" :
+                              ev.status === "updated" ? "text-[#3b82f6] bg-[#3b82f6]/10 border border-[#3b82f6]/20" :
+                              "text-warning bg-warning/10 border border-warning/20"
+                            )}>{ev.status}</span>
+                          </td>
+                          <td className="py-2.5 text-muted-foreground tabular-nums text-right">{ev.ingestion}</td>
+                          <td className="py-2.5 text-right">
+                            <button className="text-muted-foreground hover:text-white p-1 rounded hover:bg-[#141B21] transition-all"><Eye className="size-3.5" /></button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  <div className="flex items-center justify-between mt-4">
+                    <button 
+                      onClick={() => toast("Loading all historical events...")}
+                      className="text-[10px] text-[#3b82f6] hover:text-[#60a5fa] transition-colors font-medium flex items-center gap-1 group"
+                    >
+                      View all events <ArrowRight className="size-3 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                    <span className="flex items-center gap-1 text-[9px] text-primary font-bold uppercase tracking-widest px-2 py-1 rounded bg-primary/5 border border-primary/10">
+                      <span className="size-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(33,163,102,0.8)] animate-pulse" /> Streaming • 1,247 events today
+                    </span>
                   </div>
                 </div>
               </div>
-              {i < detail.pipeline.length - 1 && (
-                <ArrowRight className="mx-2 size-4 text-[#2a2f2d] shrink-0 mt-5" />
-              )}
+            )}
+
+            {activeTab === "Filters (3)" && (
+              <div className="flex flex-col gap-6 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Active Filters</h3>
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] border-primary/30 bg-primary/10 text-primary hover:bg-primary/20">
+                    <Check className="size-3 mr-1.5" /> Save filters
+                  </Button>
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  {[
+                    { field: "amount", op: "is greater than", val: "100", active: true },
+                    { field: "status", op: "equals", val: "completed", active: true },
+                    { field: "source", op: "is not", val: "test", active: true }
+                  ].map((filter, i) => (
+                    <div key={i} className="flex items-center gap-4 p-3 rounded-lg border border-[#1E2730] bg-[#141B21] hover:border-white/10 transition-colors">
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="px-2 py-1 rounded bg-[#0A0C0B] border border-[#1E2730] text-[10px] text-white font-medium min-w-[80px] text-center">{filter.field}</span>
+                        <span className="text-[10px] text-muted-foreground font-semibold">{filter.op}</span>
+                        <span className="px-2 py-1 rounded bg-[#0A0C0B] border border-[#1E2730] text-[10px] text-white font-mono">{filter.val}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-4 rounded-full bg-primary/20 relative cursor-pointer" onClick={() => toast("Toggled filter")}>
+                           <div className="absolute top-0.5 left-4 size-3 rounded-full bg-primary shadow-[0_0_5px_rgba(33,163,102,0.8)]" />
+                        </div>
+                        <button className="text-muted-foreground hover:text-critical transition-colors" onClick={() => toast("Removed filter")}><RotateCcw className="size-3.5 rotate-45" /></button>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <button className="border border-dashed border-[#1E2730] hover:border-white/20 hover:bg-white/[0.02] transition-colors rounded-lg p-3 text-center text-[10px] text-muted-foreground hover:text-white flex items-center justify-center gap-2 mt-2" onClick={() => toast("Add new filter rule")}>
+                     <div className="size-4 rounded-full bg-[#1E2730] flex items-center justify-center"><Check className="size-2.5" /></div>
+                     Add filter rule
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Placeholder for other tabs */}
+            {!["Schema mapping", "Event stream", "Filters (3)"].includes(activeTab) && (
+               <div className="flex flex-col items-center justify-center flex-1 text-center animate-fade-in mt-10">
+                 <Settings className="size-8 text-muted-foreground/30 mb-3" />
+                 <h3 className="text-sm font-semibold text-white">{activeTab}</h3>
+                 <p className="text-[11px] text-muted-foreground mt-1 max-w-xs">Configuration for {activeTab.toLowerCase()} will appear here. This section is currently locked in demo mode.</p>
+                 <Button variant="outline" size="sm" onClick={() => handleTabClick("Schema mapping")} className="mt-4 border-[#1E2730] bg-[#141B21] text-white hover:bg-white/[0.05]">
+                   Return to Schema mapping
+                 </Button>
+               </div>
+            )}
+
+          </div>
+        </div>
+
+        {/* RIGHT SIDEBAR: Health & Auth */}
+        <div className="w-[300px] shrink-0 flex flex-col gap-6">
+          
+          {/* Connector Health */}
+          <div className="flex flex-col rounded-xl border border-[#1E2730] bg-[#0A0C0B] p-5 relative overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.2)] hover:border-primary/30 transition-colors group">
+             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-50 group-hover:opacity-100 transition-opacity" />
+             <div className="flex items-center justify-between mb-4">
+               <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Connector health</h3>
+               <span className="text-[10px] font-bold text-primary px-2 py-0.5 rounded bg-primary/10 border border-primary/20">Healthy</span>
+             </div>
+             <div className="flex items-center gap-4 mb-4">
+               <div className="relative">
+                 <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+                 <Ring value={98} size={50} stroke="var(--primary)" />
+               </div>
+               <div className="flex flex-col gap-0.5">
+                 <span className="text-[11px] font-semibold text-primary">Excellent</span>
+                 <span className="text-[10px] text-muted-foreground">All systems operational</span>
+               </div>
+             </div>
+             <div className="grid grid-cols-2 gap-4 pb-4 border-b border-[#1E2730]">
+                <div className="flex flex-col gap-1 cursor-pointer hover:bg-white/[0.02] p-1.5 -ml-1.5 rounded transition-colors" onClick={() => toast("Latency details")}>
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Latency</span>
+                  <span className="text-lg font-bold text-white tabular-nums">1.8s</span>
+                  <span className="text-[9px] text-primary flex items-center gap-1 font-semibold"><ArrowUpRight className="size-2.5" /> Good</span>
+                </div>
+                <div className="flex flex-col gap-1 cursor-pointer hover:bg-white/[0.02] p-1.5 -ml-1.5 rounded transition-colors" onClick={() => toast("Error rate details")}>
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Error rate</span>
+                  <span className="text-lg font-bold text-white tabular-nums">0.12%</span>
+                  <span className="text-[9px] text-primary flex items-center gap-1 font-semibold"><ArrowDownRight className="size-2.5" /> Good</span>
+                </div>
+             </div>
+             <button 
+               onClick={() => toast("Opening full health report...")}
+               className="text-[10px] text-[#3b82f6] hover:text-[#60a5fa] transition-colors flex items-center gap-1 font-medium mt-4 group/btn"
+             >
+               View health details <ArrowRight className="size-3 group-hover/btn:translate-x-0.5 transition-transform" />
+             </button>
+          </div>
+
+          {/* Authentication & permissions */}
+          <div className="flex flex-col rounded-xl border border-[#1E2730] bg-[#0A0C0B] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.2)] hover:border-white/10 transition-colors">
+            <h3 className="text-[11px] font-bold text-white uppercase tracking-widest mb-4">Authentication & permissions</h3>
+            <div className="flex flex-col gap-3 text-[10px] border-b border-[#1E2730] pb-4 mb-4">
+               <div className="flex items-center justify-between">
+                 <span className="text-muted-foreground">API Key</span>
+                 <span className="font-semibold text-primary flex items-center gap-1"><Check className="size-3" /> Connected</span>
+               </div>
+               <div className="flex items-center justify-between">
+                 <span className="text-muted-foreground">Permission scope</span>
+                 <span className="font-medium text-white px-1.5 py-0.5 rounded bg-[#141B21] border border-[#1E2730]">Read / Write</span>
+               </div>
+               <div className="flex items-center justify-between">
+                 <span className="text-muted-foreground">Last verified</span>
+                 <span className="font-medium text-white tabular-nums">10m ago</span>
+               </div>
             </div>
-          ))}
-          <div className="ml-3 shrink-0">
-            <button type="button" onClick={() => toast.success("Opening proof trail...")} className="text-[11px] text-evidence hover:text-evidence/70 transition-colors whitespace-nowrap">
-              View proof trail →
+            <button 
+              onClick={() => toast("Opening credential manager...")}
+              className="text-[10px] text-[#3b82f6] hover:text-[#60a5fa] transition-colors flex items-center gap-1 font-medium group/btn"
+            >
+               Manage credentials <ArrowRight className="size-3 group-hover/btn:translate-x-0.5 transition-transform" />
             </button>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
-// ── Health Panel ─────────────────────────────────────────────────────────────
-function HealthPanel() {
-  const [secretVisible, setSecretVisible] = useState(false);
-  const h = connectorHealthPanel;
-
-  return (
-    <div className="flex h-full flex-col gap-3 overflow-y-auto scrollbar-thin animate-fade-up" style={{ animationDelay: "200ms" }}>
-      {/* Connector health */}
-      <div className="rounded-xl border border-[#ffffff08] bg-[#0a0c0b] overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[#ffffff06] px-4 py-3">
-          <span className="text-sm font-semibold text-foreground">Connector health</span>
-          <span className="text-xs font-semibold text-primary">{h.label}</span>
-        </div>
-        <div className="flex items-center gap-4 px-4 py-4">
-          <div className="relative shrink-0">
-            <Ring value={h.health} size={80} stroke="var(--primary)" />
+          {/* Retry queue */}
+          <div className="flex flex-col rounded-xl border border-[#1E2730] bg-[#0A0C0B] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.2)] hover:border-white/10 transition-colors">
+            <div className="flex items-center justify-between mb-4">
+               <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Retry queue</h3>
+               <span className="text-[10px] font-bold text-warning px-2 py-0.5 rounded bg-warning/10 border border-warning/20">3 items</span>
+            </div>
+            <div className="flex flex-col gap-2 text-[10px] border-b border-[#1E2730] pb-4 mb-4">
+               {connectorHealthPanel.retryQueue.map((r, i) => (
+                 <div key={i} className="flex items-center justify-between text-muted-foreground hover:text-white transition-colors cursor-pointer p-1 -mx-1 rounded hover:bg-white/[0.03]" onClick={() => toast(`Retrying ${r.id}`)}>
+                   <span className="w-16 tabular-nums font-mono">{r.id}</span>
+                   <span className="flex-1 truncate px-2">{r.type}</span>
+                   <span className="w-12 text-right text-warning">{r.retries} retry</span>
+                 </div>
+               ))}
+            </div>
+            <button 
+              onClick={() => toast("Opening retry queue manager...")}
+              className="text-[10px] text-[#3b82f6] hover:text-[#60a5fa] transition-colors flex items-center gap-1 font-medium group/btn"
+            >
+               View retry queue <ArrowRight className="size-3 group-hover/btn:translate-x-0.5 transition-transform" />
+            </button>
           </div>
-          <div className="flex flex-col gap-1 min-w-0">
-            <p className="text-xs font-semibold text-foreground">{h.sub}</p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-1">
-              <div>
-                <p className="text-[10px] text-[#4a5450]">Latency</p>
-                <p className="text-xs font-semibold text-foreground">{h.latency}</p>
-                <p className="text-[10px] text-primary">{h.latencyLabel}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-[#4a5450]">Error rate</p>
-                <p className="text-xs font-semibold text-foreground">{h.errorRate}</p>
-                <p className="text-[10px] text-primary">{h.errorRateLabel}</p>
-              </div>
+
+          {/* Webhook secret */}
+          <div className="flex flex-col rounded-xl border border-[#1E2730] bg-[#0A0C0B] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.2)] hover:border-white/10 transition-colors">
+            <h3 className="text-[11px] font-bold text-white uppercase tracking-widest mb-3">Webhook secret</h3>
+            <div className="flex items-center justify-between bg-[#141B21] border border-[#1E2730] hover:border-white/20 transition-colors rounded-lg px-3 py-2 mb-3 group/secret">
+               <span className="text-[11px] font-mono text-muted-foreground tracking-wider blur-[2px] group-hover/secret:blur-0 transition-all">{connectorHealthPanel.webhookSecret}</span>
+               <button 
+                 onClick={() => copyToClipboard(connectorHealthPanel.webhookSecret, "Webhook secret")}
+                 className="text-muted-foreground hover:text-white transition-colors p-1 rounded hover:bg-[#1E2730]"
+               >
+                 <Copy className="size-3.5" />
+               </button>
             </div>
+            <button 
+              onClick={() => toast("Secret rotation requested. Verification sent to email.")}
+              className="text-[10px] text-[#3b82f6] hover:text-[#60a5fa] transition-colors flex items-center gap-1 font-medium"
+            >
+               <RotateCcw className="size-3" /> Rotate secret
+            </button>
           </div>
-        </div>
-        <div className="border-t border-[#ffffff06] px-4 py-2.5">
-          <button type="button" className="text-[11px] text-evidence hover:text-evidence/70 transition-colors">View health details →</button>
+
+          {/* Test connection */}
+          <div className="flex flex-col rounded-xl border border-[#1E2730] bg-[#0A0C0B] p-5 mt-auto shadow-[0_4px_20px_rgba(0,0,0,0.2)] bg-gradient-to-br from-[#0A0C0B] to-primary/5">
+            <h3 className="text-[11px] font-bold text-white uppercase tracking-widest mb-1.5">Test connection</h3>
+            <p className="text-[10px] text-muted-foreground mb-4 leading-relaxed">Send a test event to verify your webhook is working.</p>
+            <Button 
+              variant="outline" 
+              disabled={isTesting}
+              onClick={() => {
+                setIsTesting(true);
+                toast("Connecting to endpoint...");
+                setTimeout(() => {
+                  toast.success("Test event sent successfully! Status: 200 OK");
+                  setIsTesting(false);
+                }, 1500);
+              }}
+              className="w-full text-[11px] border-primary/30 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all shadow-[0_0_10px_rgba(33,163,102,0.2)] hover:shadow-[0_0_15px_rgba(33,163,102,0.4)] disabled:opacity-50"
+            >
+              {isTesting ? (
+                <>
+                  <div className="size-3.5 mr-2 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                  Testing...
+                </>
+              ) : (
+                <>
+                  <Zap className="size-3.5 mr-1.5" /> Send test event
+                </>
+              )}
+            </Button>
+          </div>
+
         </div>
       </div>
 
-      {/* Auth & permissions */}
-      <div className="rounded-xl border border-[#ffffff08] bg-[#0a0c0b] overflow-hidden">
-        <div className="border-b border-[#ffffff06] px-4 py-3">
-          <span className="text-sm font-semibold text-foreground">Authentication & permissions</span>
-        </div>
-        <div className="flex flex-col gap-2 px-4 py-3">
-          {[
-            { label: "API Key",           value: h.auth.apiKey,           tone: "primary" },
-            { label: "Permission scope",  value: h.auth.permissionScope,  tone: null },
-            { label: "Last verified",     value: h.auth.lastVerified,     tone: null },
-          ].map(row => (
-            <div key={row.label} className="flex items-center justify-between">
-              <span className="text-xs text-[#4a5450]">{row.label}</span>
-              <span className={cn("text-xs font-medium", row.tone === "primary" ? "text-primary" : "text-foreground")}>{row.value}</span>
-            </div>
-          ))}
-        </div>
-        <div className="border-t border-[#ffffff06] px-4 py-2.5">
-          <button type="button" className="text-[11px] text-evidence hover:text-evidence/70 transition-colors">Manage credentials →</button>
-        </div>
-      </div>
+      {/* BOTTOM PIPELINE DIAGRAM */}
+      <div className="flex items-center justify-between mt-4 px-2 py-4 bg-[#040504] shrink-0 border-t border-[#1E2730] relative animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+         <div className="absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-[#1E2730] via-primary/30 to-[#1E2730] -z-10" />
+         
+         <div className="flex flex-col items-center gap-2 bg-[#040504] px-4 -ml-4 group cursor-pointer" onClick={() => toast("Pipeline step: Live event")}>
+           <span className="text-[10px] font-bold text-primary flex items-center gap-1 transition-transform group-hover:-translate-y-0.5"><span className="flex items-center justify-center size-4 rounded bg-primary/20 border border-primary/40 text-primary shadow-[0_0_8px_rgba(33,163,102,0.5)]">1</span> Live event</span>
+           <div className="flex flex-col gap-1 p-3 rounded-xl border border-primary/30 bg-[#0A0C0B] shadow-[0_0_15px_rgba(33,163,102,0.1)] w-40 h-[60px] justify-center relative transition-colors group-hover:border-primary/50 group-hover:bg-[#141B21]">
+             <div className="absolute -right-[1px] top-1/2 -translate-y-1/2 w-1 h-3 bg-primary rounded-l-full shadow-[0_0_5px_rgba(33,163,102,1)] animate-pulse" />
+             <span className="text-[10px] font-bold text-white flex items-center gap-1.5"><Globe className="size-3 text-muted-foreground group-hover:text-primary transition-colors" /> purchase</span>
+             <span className="text-[10px] text-muted-foreground tabular-nums font-mono pl-4.5 group-hover:text-white/80 transition-colors">ORD-884512</span>
+           </div>
+         </div>
 
-      {/* Retry queue */}
-      <div className="rounded-xl border border-[#ffffff08] bg-[#0a0c0b] overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[#ffffff06] px-4 py-3">
-          <span className="text-sm font-semibold text-foreground">Retry queue</span>
-          <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning">{h.retryQueue.length} items</span>
-        </div>
-        <div className="flex flex-col divide-y divide-[#ffffff04]">
-          {h.retryQueue.map((item) => (
-            <div key={item.id} className="flex items-center justify-between px-4 py-2.5 group">
-              <div>
-                <p className="font-mono text-[11px] text-foreground">{item.id}</p>
-                <p className="text-[10px] text-[#4a5450]">{item.type}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-warning">{item.retries} {item.retries === 1 ? "retry" : "retries"}</span>
-                <RotateCcw className="size-3.5 text-[#3a4040] hover:text-warning cursor-pointer transition-colors" onClick={() => toast.success(`Retrying ${item.id}...`)} />
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="border-t border-[#ffffff06] px-4 py-2.5">
-          <button type="button" className="text-[11px] text-evidence hover:text-evidence/70 transition-colors">View retry queue →</button>
-        </div>
-      </div>
+         <div className="relative w-8 h-px overflow-hidden">
+           <div className="absolute inset-0 bg-primary/50 animate-[slide-right_2s_infinite]" />
+           <ArrowRight className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 text-primary" />
+         </div>
 
-      {/* Webhook secret */}
-      <div className="rounded-xl border border-[#ffffff08] bg-[#0a0c0b] overflow-hidden">
-        <div className="border-b border-[#ffffff06] px-4 py-3">
-          <span className="text-sm font-semibold text-foreground">Webhook secret</span>
-        </div>
-        <div className="flex items-center gap-2 px-4 py-3">
-          <code className="flex-1 rounded-md border border-[#ffffff06] bg-[#0d0f0e] px-3 py-2 font-mono text-[11px] text-[#8a9490] truncate">
-            {secretVisible ? "whsec_a7b3real_key_shown_here" : h.webhookSecret}
-          </code>
-          <button type="button" onClick={() => setSecretVisible(s => !s)} className="flex size-8 items-center justify-center rounded-md border border-[#ffffff08] text-[#5a6660] hover:text-foreground transition-colors">
-            {secretVisible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-          </button>
-          <button type="button" onClick={() => toast.success("Copied!")} className="flex size-8 items-center justify-center rounded-md border border-[#ffffff08] text-[#5a6660] hover:text-foreground transition-colors">
-            <Copy className="size-3.5" />
-          </button>
-        </div>
-        <div className="border-t border-[#ffffff06] px-4 py-2.5">
-          <button type="button" onClick={() => toast.success("Secret rotated!")} className="text-[11px] text-critical hover:text-critical/70 transition-colors">Rotate secret</button>
-        </div>
-      </div>
+         <div className="flex flex-col items-center gap-2 bg-[#040504] px-4 group cursor-pointer" onClick={() => toast("Pipeline step: Extracted fact")}>
+           <span className="text-[10px] font-bold text-white flex items-center gap-1 transition-transform group-hover:-translate-y-0.5"><span className="flex items-center justify-center size-4 rounded bg-[#141B21] border border-[#1E2730] text-muted-foreground group-hover:border-white/30 transition-colors">2</span> Extracted fact</span>
+           <div className="flex flex-col gap-1 p-3 rounded-xl border border-[#1E2730] bg-[#0A0C0B] shadow-lg w-40 h-[60px] justify-center transition-colors group-hover:border-white/20 group-hover:bg-[#141B21]">
+             <span className="text-[10px] font-medium text-white flex items-center gap-1.5"><FileText className="size-3 text-[#38BDF8]" /> Order amount</span>
+             <span className="text-[11px] font-bold text-white tabular-nums pl-4.5">$129.99</span>
+           </div>
+         </div>
 
-      {/* Test connection */}
-      <div className="rounded-xl border border-[#ffffff08] bg-[#0a0c0b] overflow-hidden">
-        <div className="border-b border-[#ffffff06] px-4 py-3">
-          <span className="text-sm font-semibold text-foreground">Test connection</span>
-        </div>
-        <div className="px-4 py-3">
-          <p className="mb-3 text-[11px] text-[#4a5450]">Send a test event to verify your webhook is working.</p>
-          <button
-            type="button"
-            onClick={() => toast.success("Test event sent!", { description: "Received in 1.2s" })}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary/10 border border-primary/20 py-2.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-all duration-200"
-          >
-            <Send className="size-3.5" /> Send test event
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+         <ArrowRight className="size-4 text-muted-foreground" />
 
-// ── Main Connectors Page ─────────────────────────────────────────────────────
-export default function Connectors() {
-  const [selectedConnector, setSelectedConnector] = useState("c-biz");
+         <div className="flex flex-col items-center gap-2 bg-[#040504] px-4 group cursor-pointer" onClick={() => toast("Pipeline step: Metric update")}>
+           <span className="text-[10px] font-bold text-white flex items-center gap-1 transition-transform group-hover:-translate-y-0.5"><span className="flex items-center justify-center size-4 rounded bg-[#141B21] border border-[#1E2730] text-muted-foreground group-hover:border-white/30 transition-colors">3</span> Metric update</span>
+           <div className="flex flex-col gap-1 p-3 rounded-xl border border-[#1E2730] bg-[#0A0C0B] shadow-lg w-40 h-[60px] justify-center relative overflow-hidden transition-colors group-hover:border-white/20 group-hover:bg-[#141B21]">
+             <div className="absolute bottom-0 right-0 opacity-20 group-hover:opacity-40 transition-opacity group-hover:scale-110 duration-500"><TrendingUp className="size-8 text-primary" /></div>
+             <span className="text-[10px] font-medium text-white flex items-center gap-1.5"><Activity className="size-3 text-primary" /> Revenue tracked</span>
+             <span className="text-[11px] font-bold text-primary tabular-nums pl-4.5">+$129.99</span>
+           </div>
+         </div>
 
-  return (
-    <div className="flex h-[calc(100vh-6.5rem)] flex-col gap-4">
-      {/* KPI strip */}
-      <KpiStrip />
+         <ArrowRight className="size-4 text-muted-foreground" />
 
-      {/* 3-column layout fills remaining space */}
-      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[240px_1fr_260px]">
-        <ConnectorCatalog selected={selectedConnector} onSelect={setSelectedConnector} />
-        <ConnectorViewer />
-        <HealthPanel />
+         <div className="flex flex-col items-center gap-2 bg-[#040504] px-4 group cursor-pointer" onClick={() => toast("Pipeline step: Risk impact")}>
+           <span className="text-[10px] font-bold text-warning flex items-center gap-1 transition-transform group-hover:-translate-y-0.5"><span className="flex items-center justify-center size-4 rounded bg-warning/10 border border-warning/30 text-warning shadow-[0_0_8px_rgba(245,158,11,0.3)]">4</span> Risk impact</span>
+           <div className="flex flex-col gap-1 p-3 rounded-xl border border-warning/30 bg-[#0A0C0B] shadow-[0_0_15px_rgba(245,158,11,0.05)] w-40 h-[60px] justify-center transition-colors group-hover:border-warning/50 group-hover:bg-warning/5">
+             <span className="text-[10px] font-bold text-white flex items-center gap-1.5"><Shield className="size-3 text-warning group-hover:scale-110 transition-transform" /> Low risk</span>
+             <span className="text-[10px] text-muted-foreground pl-4.5 group-hover:text-white/80 transition-colors">No anomalies</span>
+           </div>
+         </div>
+
+         <ArrowRight className="size-4 text-muted-foreground" />
+
+         <div className="flex flex-col items-center gap-2 bg-[#040504] px-4 group cursor-pointer" onClick={() => toast("Pipeline step: Approval")}>
+           <span className="text-[10px] font-bold text-white flex items-center gap-1 transition-transform group-hover:-translate-y-0.5"><span className="flex items-center justify-center size-4 rounded bg-[#141B21] border border-[#1E2730] text-muted-foreground group-hover:border-white/30 transition-colors">5</span> Approval <span className="text-muted-foreground font-normal">(if needed)</span></span>
+           <div className="flex flex-col gap-1 p-3 rounded-xl border border-[#1E2730] bg-[#0A0C0B] shadow-lg w-40 h-[60px] justify-center transition-colors group-hover:border-white/20 group-hover:bg-[#141B21]">
+             <span className="text-[10px] font-bold text-white flex items-center gap-1.5"><CheckCircle2 className="size-3 text-[#a855f7]" /> Auto-approved</span>
+             <span className="text-[10px] text-muted-foreground pl-4.5">Rules applied</span>
+           </div>
+         </div>
+
+         <ArrowRight className="size-4 text-muted-foreground" />
+
+         <div className="flex flex-col items-center gap-2 bg-[#040504] pl-4 -mr-4 group cursor-pointer" onClick={() => toast("Pipeline step: Audit trail")}>
+           <span className="text-[10px] font-bold text-[#38BDF8] flex items-center gap-1 transition-transform group-hover:-translate-y-0.5"><span className="flex items-center justify-center size-4 rounded bg-[#141B21] border border-[#1E2730] text-white group-hover:border-[#38BDF8]/50 transition-colors shadow-[0_0_8px_rgba(56,189,248,0.2)]">6</span> Audit trail</span>
+           <div className="flex items-center justify-between p-3 rounded-xl border border-[#1E2730] bg-[#0A0C0B] shadow-lg w-44 h-[60px] transition-colors group-hover:border-[#38BDF8]/30 group-hover:bg-[#141B21]">
+             <div className="flex flex-col gap-1">
+               <span className="text-[10px] font-medium text-white flex items-center gap-1.5"><FileImage className="size-3 text-muted-foreground group-hover:text-[#38BDF8] transition-colors" /> Proof trail</span>
+               <span className="text-[11px] font-bold text-white tabular-nums pl-4.5">PT-1247</span>
+             </div>
+             <button className="text-[9px] text-[#3b82f6] group-hover:text-[#60a5fa] font-medium transition-colors">View proof trail →</button>
+           </div>
+         </div>
       </div>
     </div>
   );
