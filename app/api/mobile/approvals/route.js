@@ -1,5 +1,6 @@
-import { getRequestWorkspaceContext, publicSession } from "../../../../lib/server/auth-session";
+import { publicSession, requireRequestCapability, requireRequestWorkspaceContext, sessionRequiredResponse } from "../../../../lib/server/auth-session";
 import { getWorkspaceSnapshot, updateActionStatus } from "../../../../lib/server/evidence-store";
+import { guardMutationRequest } from "../../../../lib/server/request-security";
 
 export const runtime = "nodejs";
 
@@ -118,7 +119,8 @@ function mobilePayload(workspace, session) {
 
 // Mobile-ready approval queue: compact data for phone confirmation and monitoring.
 export async function GET(request) {
-  const context = getRequestWorkspaceContext(request);
+  const context = await requireRequestWorkspaceContext(request);
+  if (!context) return sessionRequiredResponse();
   const workspace = await getWorkspaceSnapshot({ workspaceId: context.workspaceId });
 
   return Response.json(mobilePayload(workspace, context.session), {
@@ -128,7 +130,11 @@ export async function GET(request) {
 
 // Records a human decision from a mobile client. It never executes external connector actions.
 export async function PATCH(request) {
-  const context = getRequestWorkspaceContext(request);
+  const guard = guardMutationRequest(request, { keyPrefix: "mobile:approvals:patch", limit: 80, windowMs: 10 * 60_000 });
+  if (guard) return guard;
+
+  const { context, response } = await requireRequestCapability(request, "decide_approvals");
+  if (response) return response;
   const body = await request.json().catch(() => ({}));
   const actionId = String(body.actionId || "");
   const status = String(body.status || "");

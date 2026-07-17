@@ -10,7 +10,12 @@ export async function GET() {
       method: "POST",
       auth: {
         ui: "Same-origin product UI can post into the current workspace session.",
-        externalWebhook: "Send x-genius-live-token and x-genius-workspace-id. The token value must match GENIUS_LIVE_INGEST_TOKEN.",
+        externalWebhook: "Send x-genius-workspace-id plus x-genius-live-token. Preferred token is v1:<HMAC_SHA256('live-events:' + workspaceId, GENIUS_LIVE_INGEST_SECRET)>. Legacy GENIUS_LIVE_INGEST_TOKEN is accepted only when GENIUS_LIVE_INGEST_WORKSPACE_ID matches the same workspace.",
+      },
+      idempotency: {
+        header: "x-idempotency-key",
+        body: "idempotencyKey",
+        behavior: "Retries with the same workspace id and idempotency key upsert the same deterministic live event ids instead of appending duplicates.",
       },
       eventTypes: liveEventTypes,
       schema: liveEventSchema,

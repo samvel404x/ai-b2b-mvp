@@ -23,9 +23,9 @@ export const metadata = {
   description:
     "GENIUS finds where a business is losing money, proves it with source evidence, prepares the next action, and waits for human approval before anything is executed.",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-    apple: "/favicon.svg",
+    icon: "/genius-logo.png",
+    shortcut: "/genius-logo.png",
+    apple: "/genius-logo.png",
   },
 };
 
@@ -37,6 +37,7 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`dark ${geistSans.variable} ${geistMono.variable}`}
     >
       <body className={`${inter.variable} bg-background text-foreground antialiased`}>

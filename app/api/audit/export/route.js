@@ -1,5 +1,6 @@
-import { getRequestWorkspaceContext } from "../../../../lib/server/auth-session";
+import { requireRequestCapability } from "../../../../lib/server/auth-session";
 import { getWorkspaceSnapshot } from "../../../../lib/server/evidence-store";
+import { applyRateLimit } from "../../../../lib/server/request-security";
 
 export const runtime = "nodejs";
 
@@ -64,6 +65,12 @@ function toCsv(rows) {
 
 // Exports the human approval and audit trail for investor review or compliance QA.
 export async function GET(request) {
+  const guard = applyRateLimit(request, { keyPrefix: "audit:export:get", limit: 30, windowMs: 10 * 60_000 });
+  if (guard) return guard;
+
+  const { context, response } = await requireRequestCapability(request, "export_data");
+  if (response) return response;
+
   const url = new URL(request.url);
   const format = url.searchParams.get("format") || "json";
 
@@ -71,7 +78,6 @@ export async function GET(request) {
     return Response.json({ error: "Unsupported audit export format. Use json or csv." }, { status: 400 });
   }
 
-  const context = getRequestWorkspaceContext(request);
   const workspace = await getWorkspaceSnapshot({ workspaceId: context.workspaceId });
   const rows = auditRows(workspace);
 

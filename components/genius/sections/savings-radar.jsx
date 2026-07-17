@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ChevronLeft, ChevronRight, X, ExternalLink, CheckCircle2,
@@ -9,8 +9,8 @@ import {
   TrendingUp, TrendingDown, Clock, Search, ListTodo, PackageOpen, LayoutDashboard, Bookmark, Filter,
   RefreshCw
 } from "lucide-react";
-import { 
-  Panel, Ring, Sparkline, StatusDot, SeverityBadge, ConfBar, EvidenceLink 
+import {
+  Panel, Ring, Sparkline, StatusDot, SeverityBadge, ConfBar, EvidenceLink
 } from "../shared";
 import { cn } from "@/lib/utils";
 import {
@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useWorkspace } from "@/components/genius/workspace-context";
 
 // ── Icons for KPIs ────────────────────────────────────────────────────────────────
 import { AlertTriangle, AlertCircle, TrendingDown as TrendDownIcon, Check } from "lucide-react";
@@ -64,46 +65,197 @@ function ApprovalPill({ state }) {
     "In progress": "border-warning/25 bg-warning/10 text-warning",
     "Review": "border-evidence/25 bg-evidence/10 text-evidence",
     "Monitoring": "border-primary/25 bg-primary/10 text-primary",
-  }[state] || "border-[#1E2730] bg-[#141B21] text-muted-foreground";
+  }[state] || "border-[#28313C] bg-[#141A22] text-muted-foreground";
   return <span className={cn("inline-flex rounded border px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest whitespace-nowrap", s)}>{state}</span>;
 }
 
-const baseOpportunities = [
-  { id: 1, title: "Microsoft renewal above benchmark", sub: "EA renewal is 18-22% above benchmark", category: "Renewal Risk", severity: "High", conf: 92, impact: "$2.45M", evidence: "Microsoft_EA_Renewal_Quote.pdf", evidenceDate: "May 23, 2026", pt: "PT-1247", action: "Renegotiate terms\nTarget 15-20% reduction", owner: "Sarah K.\nProcurement", status: "Open" },
-  { id: 2, title: "Unused SaaS licenses", sub: "298 seats unused for > 60 days", category: "Spend Leakage", severity: "High", conf: 89, impact: "$1.15M", evidence: "SaaS_Usage_May_2026.xlsx", evidenceDate: "May 24, 2026", pt: "PT-1245", action: "Reclaim or reassign\nEnd of month cleanup", owner: "Sarah K.\nProcurement", status: "In progress" },
-  { id: 3, title: "Duplicate vendor payments", sub: "32 duplicates across AP & cards", category: "Data Quality", severity: "High", conf: 91, impact: "$280K", evidence: "AP_Invoices_May.xlsx", evidenceDate: "May 24, 2026", pt: "PT-1233", action: "Void duplicates\nRecover overpayments", owner: "Review", status: "Review" },
-  { id: 4, title: "Payment terms drift", sub: "Net 30 vs Net 15 in 27% of invoices", category: "Financial Risk", severity: "Medium", conf: 76, impact: "$820K", evidence: "AP_Terms_Drift_May.csv", evidenceDate: "May 24, 2026", pt: "PT-1243", action: "Standardize terms\nNet 30 to Net 15", owner: "Open", status: "Open" },
-  { id: 5, title: "Contract auto-renews", sub: "12 contracts auto-renewing soon", category: "Renewal Risk", severity: "Medium", conf: 85, impact: "$612K", evidence: "Contracts_Master.xlsx", evidenceDate: "May 21, 2026", pt: "PT-1241", action: "Add opt-out notice\nCalendar reminders", owner: "Open", status: "Open" },
-  { id: 6, title: "Inventory overstock", sub: "Excess inventory across 4 SKUs", category: "Inventory", severity: "Medium", conf: 73, impact: "$438K", evidence: "Inventory_Aging_May.xlsx", evidenceDate: "May 24, 2026", pt: "PT-1231", action: "Adjust purchase plan\nReduce overstock", owner: "Review", status: "Review" },
-  { id: 7, title: "Forecast variance increase", sub: "Q4 variance exceeds 10%", category: "Forecasting", severity: "Low", conf: 64, impact: "-$430K", evidence: "Forecast_Variance_Q4.xlsx", evidenceDate: "May 24, 2026", pt: "PT-1222", action: "Re-forecast Q4\nUpdate assumptions", owner: "Monitoring", status: "Monitoring" },
-  { id: 8, title: "Marketing ad spend leakage", sub: "Low performing campaigns", category: "Spend Leakage", severity: "Low", conf: 61, impact: "$196K", evidence: "Google_Ads_Q4_Campaigns.xlsx", evidenceDate: "May 24, 2026", pt: "PT-1227", action: "Pause & reallocate\nFocus on ROAS > 3", owner: "Open", status: "Open" },
-];
 
-const mockOpportunities = Array.from({ length: 47 }).map((_, i) => ({
-  ...baseOpportunities[i % baseOpportunities.length],
-  id: i + 1,
-  title: `${baseOpportunities[i % baseOpportunities.length].title}${i > 7 ? ` (#${i+1})` : ''}`
-}));
 
-const mockTimeline = [
-  { id: "t1", date: "May 22, 10:15 AM", title: "Microsoft renewal above benchmark",   subtitle: "$2.45M opportunity",   tone: "critical" },
-  { id: "t2", date: "May 23, 9:41 AM",  title: "Unused SaaS licenses detected",        subtitle: "$1.15M opportunity",   tone: "primary" },
-  { id: "t3", date: "May 23, 11:02 AM", title: "Duplicate payments found",             subtitle: "$280K opportunity",    tone: "warning" },
-  { id: "t4", date: "May 24, 8:37 AM",  title: "Payment terms drift increasing",       subtitle: "$820K opportunity",    tone: "warning" },
-  { id: "t5", date: "May 24, 10:06 AM", title: "Inventory overstock identified",       subtitle: "$438K opportunity",    tone: "primary" },
-  { id: "t6", date: "May 24, 1:14 PM",  title: "Forecast variance Q4 increased",       subtitle: "-$430K risk",          tone: "evidence" },
-  { id: "t7", date: "May 24, 3:22 PM",  title: "Marketing spend leakage detected",     subtitle: "$196K opportunity",    tone: "critical" },
-];
+function formatImpact(value) {
+  const amount = Number(value || 0);
+  if (!Number.isFinite(amount) || amount === 0) return "$0";
+  const sign = amount < 0 ? "-" : "";
+  const absolute = Math.abs(amount);
+  if (absolute >= 1_000_000) return `${sign}$${(absolute / 1_000_000).toFixed(2)}M`;
+  if (absolute >= 1_000) return `${sign}$${Math.round(absolute / 1_000)}K`;
+  return `${sign}$${absolute.toLocaleString()}`;
+}
 
-export default function SavingsRadar({ onNavigate }) {
-  const [selectedIds, setSelectedIds] = useState([1]); // Default to first row selected for checkbox
-  const [selectedRow, setSelectedRow] = useState(mockOpportunities[0]);
+function formatEvidenceDate(value) {
+  if (!value) return "Workspace evidence";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Workspace evidence";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function normalizeSeverity(value) {
+  if (value === "Critical" || value === "High") return "High";
+  if (value === "Watch" || value === "Low") return "Low";
+  return "Medium";
+}
+
+function uiStatusFromAction(status) {
+  if (status === "Ready" || status === "Edited" || status === "Delegated") return "In progress";
+  if (status === "Approved" || status === "Done") return "Monitoring";
+  if (status === "Rejected" || status === "Snoozed") return "Open";
+  return "Review";
+}
+
+export default function SavingsRadar({ onNavigate, focusContext }) {
+  const { findings, actions, runAgents, updateAction, exportEvidence } = useWorkspace();
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedRowId, setSelectedRowId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [agentRunning, setAgentRunning] = useState(false);
+  const [localStatuses, setLocalStatuses] = useState({});
+  const [filters, setFilters] = useState({
+    category: "all",
+    severity: "all",
+    confidence: "all",
+    owner: "all",
+    status: "all",
+    sourceType: "all",
+  });
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
+  const [savedViewCount, setSavedViewCount] = useState(0);
+  const [activeDetailTab, setActiveDetailTab] = useState("overview");
 
-  const totalPages = Math.ceil(mockOpportunities.length / rowsPerPage);
-  const paginatedData = mockOpportunities.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  const workspaceOpportunities = useMemo(() => {
+    const actionsByFinding = new Map((actions || []).map((action) => [action.findingId, action]));
+    return (findings || []).map((finding) => {
+      const action = actionsByFinding.get(finding.id);
+      const actionText = action?.description || finding.recommendedAction || "Review evidence and prepare an approval-safe action.";
+      const [primaryAction, secondaryAction = "Human approval required"] = String(actionText).split(/\n|\. /);
+      return {
+        id: finding.id,
+        actionId: action?.id || null,
+        evidenceId: finding.evidenceId || action?.evidenceId || null,
+        title: finding.title,
+        sub: finding.evidence || finding.recommendedAction || "Evidence-backed workspace finding",
+        category: finding.category || "Workspace",
+        severity: normalizeSeverity(finding.severity),
+        conf: finding.confidence || action?.confidence || 0,
+        impact: formatImpact(finding.impact),
+        evidence: finding.source || action?.evidenceName || "Workspace evidence",
+        evidenceDate: formatEvidenceDate(finding.updatedAt || finding.createdAt),
+        pt: action?.proofTrailId || `trail:${String(finding.id).slice(0, 8)}`,
+        action: `${primaryAction}\n${secondaryAction}`,
+        owner: action?.owner || finding.owner || "Founder approval",
+        status: localStatuses[finding.id] || uiStatusFromAction(action?.status),
+      };
+    });
+  }, [actions, findings, localStatuses]);
+
+  const opportunities = workspaceOpportunities;
+  const filterOptions = useMemo(() => {
+    const unique = (items) => [...new Set(items.filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)));
+    const sourceType = (row) => row.evidence?.split(".").pop()?.toUpperCase() || "FILE";
+
+    return {
+      category: unique(opportunities.map((row) => row.category)),
+      severity: unique(opportunities.map((row) => row.severity)),
+      confidence: ["High confidence", "Medium confidence", "Low confidence"],
+      owner: unique(opportunities.map((row) => row.owner.split("\n")[0])),
+      status: unique(opportunities.map((row) => row.status)),
+      sourceType: unique(opportunities.map(sourceType)),
+    };
+  }, [opportunities]);
+
+  const activeFilterCount = Object.values(filters).filter((value) => value !== "all").length;
+
+  const filteredOpportunities = useMemo(() => {
+    const confidenceBucket = (row) => {
+      if (row.conf >= 90) return "High confidence";
+      if (row.conf >= 70) return "Medium confidence";
+      return "Low confidence";
+    };
+    const sourceType = (row) => row.evidence?.split(".").pop()?.toUpperCase() || "FILE";
+
+    return opportunities.filter((row) => {
+      if (filters.category !== "all" && row.category !== filters.category) return false;
+      if (filters.severity !== "all" && row.severity !== filters.severity) return false;
+      if (filters.confidence !== "all" && confidenceBucket(row) !== filters.confidence) return false;
+      if (filters.owner !== "all" && row.owner.split("\n")[0] !== filters.owner) return false;
+      if (filters.status !== "all" && row.status !== filters.status) return false;
+      if (filters.sourceType !== "all" && sourceType(row) !== filters.sourceType) return false;
+      return true;
+    });
+  }, [filters, opportunities]);
+
+  const selectedRow = selectedRowId === null
+    ? filteredOpportunities[0] || opportunities[0] || null
+    : filteredOpportunities.find((row) => row.id === selectedRowId)
+      || opportunities.find((row) => row.id === selectedRowId)
+      || filteredOpportunities[0]
+      || opportunities[0]
+      || null;
+
+  const setFilter = (id, value) => {
+    setFilters((current) => ({ ...current, [id]: value }));
+    setCurrentPage(1);
+    if (value !== "all") setFiltersOpen(true);
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      category: "all",
+      severity: "all",
+      confidence: "all",
+      owner: "all",
+      status: "all",
+      sourceType: "all",
+    });
+    setCurrentPage(1);
+  };
+
+  const filterControls = [
+    { id: "category", label: "All Categories", options: filterOptions.category },
+    { id: "severity", label: "All Severity", options: filterOptions.severity },
+    { id: "confidence", label: "All Confidence", options: filterOptions.confidence },
+    { id: "owner", label: "All Owners", options: filterOptions.owner },
+    { id: "status", label: "All Approval States", options: filterOptions.status },
+    { id: "sourceType", label: "All Source Types", options: filterOptions.sourceType },
+  ];
+
+  useEffect(() => {
+    if (!focusContext?.findingId && !focusContext?.actionId && !focusContext?.evidenceId) return undefined;
+
+    const timer = window.setTimeout(() => {
+      const row = opportunities.find((candidate) =>
+        candidate.id === focusContext.findingId
+        || candidate.actionId === focusContext.actionId
+        || candidate.evidenceId === focusContext.evidenceId
+      );
+
+      if (!row) {
+        toast.info("Linked finding is not available in this workspace yet.");
+        return;
+      }
+
+      setSelectedRowId(row.id);
+      setSelectedIds((current) => current.includes(row.id) ? current : [row.id, ...current]);
+      toast.success(`Focused finding: ${row.title}`);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [focusContext?.actionId, focusContext?.evidenceId, focusContext?.findingId, focusContext?.token, opportunities]);
+  const totalPages = Math.max(1, Math.ceil(filteredOpportunities.length / rowsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedData = filteredOpportunities.slice((safeCurrentPage - 1) * rowsPerPage, safeCurrentPage * rowsPerPage);
+
+  const pageIds = paginatedData.map((row) => row.id);
+  const allPageRowsSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+
+  const togglePageSelection = () => {
+    if (allPageRowsSelected) {
+      setSelectedIds((current) => current.filter((id) => !pageIds.includes(id)));
+      return;
+    }
+
+    setSelectedIds((current) => [...new Set([...current, ...pageIds])]);
+  };
 
   // --- Derived detail-panel values from selectedRow ---
   const narrativeMap = {
@@ -114,7 +266,22 @@ export default function SavingsRadar({ onNavigate }) {
     'Inventory': `${selectedRow?.title} detected from inventory aging report. ${selectedRow?.sub}. Purchase plan adjustment recommended.`,
     'Forecasting': `${selectedRow?.title} identified from Q4 variance analysis. ${selectedRow?.sub}. Forecast update required before board review.`,
   };
-  const narrative = narrativeMap[selectedRow?.category] || `${selectedRow?.title}. ${selectedRow?.sub}. Review recommended.`;
+
+  const detailNarrative = narrativeMap[selectedRow?.category]
+    || `${selectedRow?.title} has been flagged for review based on ${selectedRow?.evidence}. Action is required.`;
+
+  const timelineItems = useMemo(() => {
+    return [...(findings || [])]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 7)
+      .map(f => ({
+        id: f.id,
+        date: formatEvidenceDate(f.createdAt),
+        title: f.title,
+        subtitle: `${formatImpact(f.impact)} opportunity`,
+        tone: f.severity === "Critical" ? "critical" : f.severity === "High" ? "primary" : f.severity === "Medium" ? "warning" : "evidence"
+      }));
+  }, [findings]);
 
   const breakdownMap = {
     'Renewal Risk':   [{ label: 'Price uplift', pct: 68 }, { label: 'Licensing mix', pct: 21 }, { label: 'Payment terms', pct: 11 }],
@@ -148,6 +315,14 @@ export default function SavingsRadar({ onNavigate }) {
     'Forecasting':    [`${selectedRow?.sub}`, `Source: ${selectedRow?.evidence}`, `Board review impacted`],
   };
   const facts = factsMap[selectedRow?.category] || [`${selectedRow?.title}`, `${selectedRow?.sub}`, `Confidence: ${selectedRow?.conf}%`];
+  const detailTabs = [
+    { id: "overview", label: "Overview" },
+    { id: "evidence", label: `Evidence (${selectedRow?.evidenceId ? 1 : 0})` },
+    { id: "impact", label: "Impact" },
+    { id: "timeline", label: "Timeline" },
+    { id: "activity", label: "Activity" },
+    { id: "related", label: `Related (${selectedRow?.actionId ? 1 : 0})` },
+  ];
 
   const statusColors = {
     'Open':        'border-critical/30 bg-critical/10 text-critical hover:bg-critical/20',
@@ -155,30 +330,115 @@ export default function SavingsRadar({ onNavigate }) {
     'Review':      'border-evidence/30 bg-evidence/10 text-evidence hover:bg-evidence/20',
     'Monitoring':  'border-primary/30 bg-primary/10 text-primary hover:bg-primary/20',
   };
-  const statusCls = statusColors[selectedRow?.status] ?? 'border-[#1E2730] bg-[#141B21] text-muted-foreground hover:bg-[#1E2730]';
+  const statusCls = statusColors[selectedRow?.status] ?? 'border-[#28313C] bg-[#141A22] text-muted-foreground hover:bg-[#28313C]';
 
   const toggleSelect = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
+  const updateSelectedStatus = async (apiStatus, uiStatus) => {
+    if (!selectedRow) return;
+
+    try {
+      if (selectedRow.actionId) {
+        await updateAction(selectedRow.actionId, apiStatus, `Savings Radar marked this action as ${uiStatus}.`);
+      } else {
+        setLocalStatuses((prev) => ({ ...prev, [selectedRow.id]: uiStatus }));
+      }
+      toast.success(`Status updated to ${uiStatus}`);
+      return true;
+    } catch (error) {
+      toast.error(error.message || "Status update failed.");
+      return false;
+    }
+  };
+
+  const handleRunAgent = async () => {
+    setAgentRunning(true);
+    try {
+      await runAgents();
+      toast.success(`${recommendedAgent} refreshed findings and approval-safe actions.`);
+    } catch (error) {
+      toast.error(error.message || "Agent refresh failed.");
+    } finally {
+      setAgentRunning(false);
+    }
+  };
+
+  const handleCreateApproval = async () => {
+    if (!selectedRow) return;
+    const updated = await updateSelectedStatus("Ready", "In progress");
+    if (updated) {
+      onNavigate?.("approvals", {
+        actionId: selectedRow.actionId,
+        findingId: selectedRow.id,
+        evidenceId: selectedRow.evidenceId,
+        proofTrailId: selectedRow.pt,
+        source: "savings",
+      });
+    }
+  };
+
+  const handleExport = () => {
+    if (exportEvidence("csv", "all")) {
+      toast.success("Evidence export started");
+    }
+  };
+
+  const openProofTrailFor = (row) => {
+    if (!row) return;
+
+    if (row.actionId) {
+      toast.success(`Opening approval-safe action for ${row.pt}.`);
+      onNavigate?.("approvals", {
+        actionId: row.actionId,
+        findingId: row.id,
+        evidenceId: row.evidenceId,
+        proofTrailId: row.pt,
+        source: "savings",
+      });
+      return;
+    }
+
+    if (row.evidenceId) {
+      toast.success(`Opening source evidence for ${row.pt}.`);
+      onNavigate?.("data", {
+        evidenceId: row.evidenceId,
+        findingId: row.id,
+        proofTrailId: row.pt,
+        source: "savings",
+      });
+      return;
+    }
+
+    toast.info(`Opening report proof coverage for ${row.pt || "selected finding"}.`);
+    onNavigate?.("reports", {
+      findingId: row.id,
+      proofTrailId: row.pt,
+      source: "savings",
+    });
+  };
+
+  const handleOpenProofTrail = () => openProofTrailFor(selectedRow);
+
   return (
     <div className="flex flex-col gap-6 p-6">
-      
+
       {/* KPI Strip */}
       <div className="flex flex-wrap gap-4 overflow-x-auto scrollbar-none pb-2 -mb-2">
         {topKpis.map((kpi, i) => (
           <div
             key={kpi.label}
-            className="group relative flex min-w-[180px] flex-1 animate-fade-up flex-col gap-3 overflow-hidden rounded-xl border border-[#1E2730] bg-[#0A0C0B] p-4 transition-all hover:bg-[#141B21]"
+            className="group relative flex min-w-[180px] flex-1 animate-fade-up flex-col gap-3 overflow-hidden rounded-xl border border-[#28313C] bg-[#0E1116] p-4 transition-all hover:bg-[#141A22]"
             style={{ animationDelay: `${i * 35}ms` }}
           >
             <div className="flex items-center gap-2">
-              <div className="flex size-7 items-center justify-center rounded-full border border-[#1E2730] bg-[#141B21]">
+              <div className="flex size-7 items-center justify-center rounded-full border border-[#28313C] bg-[#141A22]">
                 <kpi.icon className={cn("size-3.5", toneText[kpi.tone])} />
               </div>
               <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground line-clamp-1">{kpi.label}</span>
             </div>
-            
+
             <div className="mt-1 flex items-end justify-between">
               <div className="flex flex-col">
                 <span className="text-xl font-bold tabular-nums leading-none text-white">{kpi.value}</span>
@@ -210,60 +470,113 @@ export default function SavingsRadar({ onNavigate }) {
       </div>
 
       <div className="grid grid-cols-12 gap-6 h-[760px]">
-        
+
         {/* Left Column */}
         <div className="col-span-12 xl:col-span-8 flex flex-col gap-6">
-          
+
           {/* Main Table Panel */}
-          <div className="flex flex-col border border-[#1E2730] bg-[#0A0C0B] rounded-xl overflow-hidden flex-1">
+          <div className="flex flex-col border border-[#28313C] bg-[#0E1116] rounded-xl overflow-hidden flex-1">
             {/* Header & Actions */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1E2730]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#28313C]">
               <div className="flex items-center gap-2">
                 <span className="text-[13px] font-semibold text-white">Evidence-backed opportunities</span>
                 <AlertCircle className="size-3.5 text-muted-foreground" />
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => toast.success("View saved")} className="flex items-center gap-1.5 rounded border border-[#1E2730] bg-[#141B21] px-3 py-1.5 text-[10px] text-white hover:bg-[#1E2730] transition-colors">
-                  <Bookmark className="size-3" /> Save view <ChevronDown className="size-3" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSavedViewCount((count) => count + 1);
+                    toast.success(`Saved view with ${activeFilterCount} active filters`);
+                  }}
+                  className="flex items-center gap-1.5 rounded border border-[#28313C] bg-[#141A22] px-3 py-1.5 text-[10px] text-white hover:bg-[#28313C] transition-colors"
+                >
+                  <Bookmark className="size-3" /> Save view {savedViewCount > 0 ? `(${savedViewCount})` : ""} <ChevronDown className="size-3" />
                 </button>
-                <button onClick={() => toast.success("Exporting...")} className="flex items-center gap-1.5 rounded border border-[#1E2730] bg-transparent px-3 py-1.5 text-[10px] text-white hover:bg-[#141B21] transition-colors">
+                <button onClick={handleExport} className="flex items-center gap-1.5 rounded border border-[#28313C] bg-transparent px-3 py-1.5 text-[10px] text-white hover:bg-[#141A22] transition-colors">
                   Export <ChevronDown className="size-3" />
                 </button>
-                <button onClick={() => toast.info("Column settings")} className="flex size-7 items-center justify-center rounded border border-[#1E2730] bg-transparent text-muted-foreground hover:bg-[#141B21] transition-colors">
+                <button
+                  type="button"
+                  aria-pressed={showColumnSettings}
+                  onClick={() => setShowColumnSettings((open) => !open)}
+                  className={cn(
+                    "flex size-7 items-center justify-center rounded border border-[#28313C] bg-transparent text-muted-foreground hover:bg-[#141A22] transition-colors",
+                    showColumnSettings && "border-primary/40 bg-primary/10 text-primary"
+                  )}
+                >
                   <SlidersHorizontal className="size-3" />
                 </button>
               </div>
             </div>
 
             {/* Filters */}
-            <div className="flex items-center gap-3 px-5 py-3 border-b border-[#1E2730]">
-              {["All Categories", "All Severity", "All Confidence", "All Owners", "All Approval States", "All Source Types"].map(f => (
-                <DropdownMenu key={f}>
-                  <DropdownMenuTrigger className="flex items-center gap-1.5 rounded border border-[#1E2730] bg-transparent px-2.5 py-1 text-[10px] text-muted-foreground hover:bg-[#141B21] transition-colors">
-                      {f} <ChevronDown className="size-3" />
+            <div className="flex items-center gap-3 px-5 py-3 border-b border-[#28313C]">
+              {filterControls.map((control) => (
+                <DropdownMenu key={control.id}>
+                  <DropdownMenuTrigger className="flex items-center gap-1.5 rounded border border-[#28313C] bg-transparent px-2.5 py-1 text-[10px] text-muted-foreground hover:bg-[#141A22] transition-colors">
+                      {filters[control.id] === "all" ? control.label : filters[control.id]} <ChevronDown className="size-3" />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-40 border-[#1E2730] bg-[#0A0C0B] text-muted-foreground">
-                    <DropdownMenuItem onClick={() => toast.success(`${f} selected`)} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Option 1</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast.success(`${f} selected`)} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Option 2</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast.success(`${f} selected`)} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Option 3</DropdownMenuItem>
+                  <DropdownMenuContent align="start" className="w-40 border-[#28313C] bg-[#0E1116] text-muted-foreground">
+                    <DropdownMenuItem onClick={() => setFilter(control.id, "all")} className="text-[11px] focus:bg-[#28313C] focus:text-white">{control.label}</DropdownMenuItem>
+                    {control.options.map((option) => (
+                      <DropdownMenuItem key={option} onClick={() => setFilter(control.id, option)} className="text-[11px] focus:bg-[#28313C] focus:text-white">{option}</DropdownMenuItem>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
               ))}
-              <div className="w-px h-4 bg-[#1E2730] mx-1" />
-              <button onClick={() => toast.info("Opening filters...")} className="flex items-center gap-1.5 rounded border border-[#1E2730] bg-transparent px-2.5 py-1 text-[10px] text-white hover:bg-[#141B21] transition-colors">
-                <Filter className="size-3 text-muted-foreground" /> Filters
+              <div className="w-px h-4 bg-[#28313C] mx-1" />
+              <button
+                type="button"
+                aria-pressed={filtersOpen}
+                onClick={() => setFiltersOpen((open) => !open)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded border border-[#28313C] bg-transparent px-2.5 py-1 text-[10px] text-white hover:bg-[#141A22] transition-colors",
+                  filtersOpen && "border-primary/40 bg-primary/10 text-primary"
+                )}
+              >
+                <Filter className="size-3 text-muted-foreground" /> Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ""}
               </button>
-              <button onClick={() => toast.success("Filters cleared")} className="text-[10px] text-primary hover:underline ml-1 font-medium">Clear all</button>
+              <button type="button" onClick={clearFilters} disabled={activeFilterCount === 0} className="text-[10px] text-primary hover:underline ml-1 font-medium disabled:text-muted-foreground disabled:no-underline disabled:cursor-not-allowed">Clear all</button>
             </div>
+
+            {(filtersOpen || showColumnSettings) ? (
+              <div className="flex flex-wrap items-center gap-2 border-b border-[#28313C] bg-[#080A09] px-5 py-3 text-[10px] text-muted-foreground">
+                {filtersOpen ? (
+                  <>
+                    <span className="font-semibold text-white">Filtered result:</span>
+                    <span>{filteredOpportunities.length} of {opportunities.length} opportunities</span>
+                    {filterControls.filter((control) => filters[control.id] !== "all").map((control) => (
+                      <button
+                        key={control.id}
+                        type="button"
+                        onClick={() => setFilter(control.id, "all")}
+                        className="rounded border border-[#28313C] bg-[#141A22] px-2 py-1 text-white hover:bg-[#28313C]"
+                      >
+                        {filters[control.id]} <X className="ml-1 inline size-2.5" />
+                      </button>
+                    ))}
+                  </>
+                ) : null}
+                {showColumnSettings ? (
+                  <>
+                    <span className="font-semibold text-white">Visible columns:</span>
+                    {["Opportunity", "Category", "Severity", "Confidence", "Impact", "Evidence", "Proof", "Action", "Owner"].map((column) => (
+                      <span key={column} className="rounded border border-primary/20 bg-primary/5 px-2 py-1 text-primary">{column}</span>
+                    ))}
+                  </>
+                ) : null}
+              </div>
+            ) : null}
 
             {/* Table */}
             <div className="flex-1 overflow-y-auto scrollbar-thin">
               <table className="w-full text-[10px]">
                 <thead>
-                  <tr className="border-b border-[#1E2730] bg-[#0A0C0B] sticky top-0 z-10">
+                  <tr className="border-b border-[#28313C] bg-[#0E1116] sticky top-0 z-10">
                     <th className="py-2.5 text-left font-semibold uppercase tracking-widest text-muted-foreground w-12 px-4">
                       <div className="flex items-center gap-3">
-                        <Checkbox checked={selectedIds.length > 0} onCheckedChange={() => setSelectedIds([])} />
+                        <Checkbox checked={allPageRowsSelected} onCheckedChange={togglePageSelection} />
                         #
                       </div>
                     </th>
@@ -279,13 +592,20 @@ export default function SavingsRadar({ onNavigate }) {
                   </tr>
                 </thead>
                 <tbody>
+                  {paginatedData.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} className="px-5 py-12 text-center text-[11px] text-muted-foreground">
+                        No opportunities match the active filters.
+                      </td>
+                    </tr>
+                  ) : null}
                   {paginatedData.map((row) => (
                     <tr
                       key={row.id}
-                      onClick={() => setSelectedRow(row)}
+                      onClick={() => setSelectedRowId(row.id)}
                       className={cn(
-                        "cursor-pointer border-b border-[#1E2730]/50 transition-colors hover:bg-white/[0.02]",
-                        selectedRow?.id === row.id && "bg-white/[0.05] border-l-2 border-l-primary border-r-0 border-y-[#1E2730]"
+                        "cursor-pointer border-b border-[#28313C]/50 transition-colors hover:bg-white/[0.02]",
+                        selectedRow?.id === row.id && "bg-white/[0.05] border-l-2 border-l-primary border-r-0 border-y-[#28313C]"
                       )}
                     >
                       <td className="py-3 px-4">
@@ -302,7 +622,7 @@ export default function SavingsRadar({ onNavigate }) {
                       </td>
                       <td className="py-3 text-muted-foreground whitespace-nowrap">{row.category}</td>
                       <td className="py-3">
-                        <span className={cn("rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-widest", 
+                        <span className={cn("rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-widest",
                           row.severity === "High" ? "bg-critical/10 text-critical border-critical/20" :
                           row.severity === "Medium" ? "bg-warning/10 text-warning border-warning/20" :
                           "bg-primary/10 text-primary border-primary/20"
@@ -329,7 +649,7 @@ export default function SavingsRadar({ onNavigate }) {
                         </div>
                       </td>
                       <td className="py-3">
-                        <EvidenceLink onClick={(e) => { e.stopPropagation(); toast.info(`Opening ${row.pt}`); }}>
+                        <EvidenceLink onClick={(e) => { e.stopPropagation(); setSelectedRowId(row.id); openProofTrailFor(row); }}>
                           {row.pt}
                         </EvidenceLink>
                       </td>
@@ -354,36 +674,38 @@ export default function SavingsRadar({ onNavigate }) {
                 </tbody>
               </table>
             </div>
-            
-            <div className="flex items-center justify-between border-t border-[#1E2730] px-5 py-3 text-[10px] text-muted-foreground shrink-0 bg-[#0A0C0B]">
-              <span>Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(currentPage * rowsPerPage, mockOpportunities.length)} of {mockOpportunities.length} opportunities</span>
+
+            <div className="flex items-center justify-between border-t border-[#28313C] px-5 py-3 text-[10px] text-muted-foreground shrink-0 bg-[#0E1116]">
+              <span>
+                Showing {filteredOpportunities.length ? (safeCurrentPage - 1) * rowsPerPage + 1 : 0} to {Math.min(safeCurrentPage * rowsPerPage, filteredOpportunities.length)} of {filteredOpportunities.length} opportunities
+              </span>
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="flex size-6 items-center justify-center rounded hover:bg-[#1E2730] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="size-3" /></button>
+                  <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={safeCurrentPage === 1} className="flex size-6 items-center justify-center rounded hover:bg-[#28313C] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="size-3" /></button>
                   {Array.from({ length: totalPages }).map((_, idx) => {
                     const page = idx + 1;
                     return (
-                      <button 
-                        key={page} 
-                        onClick={() => setCurrentPage(page)} 
-                        className={cn("flex size-6 items-center justify-center rounded transition-colors hover:bg-[#1E2730] hover:text-white", currentPage === page ? "border border-[#1E2730] bg-[#141B21] text-white" : "")}
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={cn("flex size-6 items-center justify-center rounded transition-colors hover:bg-[#28313C] hover:text-white", safeCurrentPage === page ? "border border-[#28313C] bg-[#141A22] text-white" : "")}
                       >
                         {page}
                       </button>
                     )
                   })}
-                  <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="flex size-6 items-center justify-center rounded hover:bg-[#1E2730] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="size-3" /></button>
+                  <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={safeCurrentPage === totalPages} className="flex size-6 items-center justify-center rounded hover:bg-[#28313C] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ChevronRight className="size-3" /></button>
                 </div>
                 <div className="flex items-center gap-3">
                   <span>Rows per page:</span>
                   <DropdownMenu>
-                    <DropdownMenuTrigger className="flex items-center gap-1 font-medium text-white bg-[#141B21] border border-[#1E2730] rounded px-2 py-1 transition-colors hover:bg-[#1E2730]">
+                    <DropdownMenuTrigger className="flex items-center gap-1 font-medium text-white bg-[#141A22] border border-[#28313C] rounded px-2 py-1 transition-colors hover:bg-[#28313C]">
                         {rowsPerPage} <ChevronDown className="size-3 text-muted-foreground" />
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-16 min-w-0 border-[#1E2730] bg-[#0A0C0B] text-muted-foreground">
-                      <DropdownMenuItem onClick={() => { setRowsPerPage(10); setCurrentPage(1); }} className="text-[11px] focus:bg-[#1E2730] focus:text-white">10</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { setRowsPerPage(25); setCurrentPage(1); }} className="text-[11px] focus:bg-[#1E2730] focus:text-white">25</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { setRowsPerPage(50); setCurrentPage(1); }} className="text-[11px] focus:bg-[#1E2730] focus:text-white">50</DropdownMenuItem>
+                    <DropdownMenuContent align="end" className="w-16 min-w-0 border-[#28313C] bg-[#0E1116] text-muted-foreground">
+                      <DropdownMenuItem onClick={() => { setRowsPerPage(10); setCurrentPage(1); }} className="text-[11px] focus:bg-[#28313C] focus:text-white">10</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setRowsPerPage(25); setCurrentPage(1); }} className="text-[11px] focus:bg-[#28313C] focus:text-white">25</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setRowsPerPage(50); setCurrentPage(1); }} className="text-[11px] focus:bg-[#28313C] focus:text-white">50</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -392,38 +714,45 @@ export default function SavingsRadar({ onNavigate }) {
           </div>
 
           {/* Timeline Panel */}
-          <div className="flex flex-col border border-[#1E2730] bg-[#0A0C0B] rounded-xl p-5 shrink-0">
+          <div className="flex flex-col border border-[#28313C] bg-[#0E1116] rounded-xl p-5 shrink-0">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <span className="text-[13px] font-semibold text-white">Newly detected opportunities this week</span>
                 <AlertCircle className="size-3.5 text-muted-foreground" />
               </div>
-              <button onClick={() => toast.info("Opening full timeline")} className="text-[10px] text-primary hover:underline font-medium flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveDetailTab("timeline");
+                  if (!selectedRow && filteredOpportunities[0]) setSelectedRowId(filteredOpportunities[0].id);
+                }}
+                className="text-[10px] text-primary hover:underline font-medium flex items-center gap-1"
+              >
                 View all timeline <ChevronRight className="size-3" />
               </button>
             </div>
-            
+
             <div className="relative flex items-start justify-between">
               {/* Horizontal line */}
-              <div className="absolute left-4 right-4 top-[11px] h-px bg-[#1E2730]" />
-              
-              {mockTimeline.map((item, i) => (
+              <div className="absolute left-4 right-4 top-[11px] h-px bg-[#28313C]" />
+
+              {timelineItems.map((item, i) => (
                 <div key={item.id} className="relative flex flex-col items-center flex-1 z-10 px-1 group">
                   <div className={cn(
-                    "flex size-6 items-center justify-center rounded-full border-2 border-[#0A0C0B] mb-3 transition-transform group-hover:scale-110",
+                    "flex size-6 items-center justify-center rounded-full border-2 border-[#0E1116] mb-3 transition-transform group-hover:scale-110",
                     item.tone === "critical" ? "bg-critical" :
                     item.tone === "warning" ? "bg-warning" :
                     item.tone === "primary" ? "bg-primary" : "bg-evidence"
                   )}>
-                    {item.tone === "critical" ? <Shield className="size-3 text-[#0A0C0B]" /> :
-                     item.tone === "warning" ? <AlertTriangle className="size-3 text-[#0A0C0B]" /> :
-                     item.tone === "primary" ? <PackageOpen className="size-3 text-[#0A0C0B]" /> :
-                     <Activity className="size-3 text-[#0A0C0B]" />}
+                    {item.tone === "critical" ? <Shield className="size-3 text-[#0E1116]" /> :
+                     item.tone === "warning" ? <AlertTriangle className="size-3 text-[#0E1116]" /> :
+                     item.tone === "primary" ? <PackageOpen className="size-3 text-[#0E1116]" /> :
+                     <Activity className="size-3 text-[#0E1116]" />}
                   </div>
-                  
+
                   {/* Connecting vertical line (mocking the UI where text drops down) */}
-                  <div className="absolute top-6 bottom-0 w-px bg-[#1E2730]/50" />
-                  
+                  <div className="absolute top-6 bottom-0 w-px bg-[#28313C]/50" />
+
                   <div className="text-center flex flex-col gap-1 items-center mt-2 max-w-[100px]">
                     <span className="text-[9px] font-semibold text-white line-clamp-2 leading-tight">{item.title}</span>
                     <span className="text-[9px] text-muted-foreground line-clamp-1">{item.subtitle}</span>
@@ -431,7 +760,7 @@ export default function SavingsRadar({ onNavigate }) {
                   </div>
                 </div>
               ))}
-              <div className="relative flex items-center justify-center size-6 rounded-full bg-[#141B21] border border-[#1E2730] mt-0 cursor-pointer hover:bg-[#1E2730] transition-colors z-10">
+              <div className="relative flex items-center justify-center size-6 rounded-full bg-[#141A22] border border-[#28313C] mt-0 cursor-pointer hover:bg-[#28313C] transition-colors z-10">
                 <ChevronRight className="size-3 text-muted-foreground" />
               </div>
             </div>
@@ -441,12 +770,12 @@ export default function SavingsRadar({ onNavigate }) {
         {/* Right Column - Detail Panel */}
         <div className="col-span-12 xl:col-span-4 h-full">
           {selectedRow ? (
-            <div className="flex flex-col h-full rounded-xl border border-[#1E2730] bg-[#0A0C0B] overflow-hidden">
-              <div className="flex items-center justify-between border-b border-[#1E2730] px-5 py-4 shrink-0">
+            <div className="flex flex-col h-full rounded-xl border border-[#28313C] bg-[#0E1116] overflow-hidden">
+              <div className="flex items-center justify-between border-b border-[#28313C] px-5 py-4 shrink-0">
                 <div className="flex flex-col gap-1.5 min-w-0 pr-2">
                   <h3 className="text-sm font-semibold text-white truncate">{selectedRow.title}</h3>
                   <div className="flex items-center gap-2">
-                    <span className={cn("rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest", 
+                    <span className={cn("rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest",
                       selectedRow.severity === "High" ? "bg-critical/10 text-critical border border-critical/20" :
                       selectedRow.severity === "Medium" ? "bg-warning/10 text-warning border border-warning/20" :
                       "bg-primary/10 text-primary border border-primary/20"
@@ -460,29 +789,114 @@ export default function SavingsRadar({ onNavigate }) {
                     <DropdownMenuTrigger className={cn("flex items-center gap-1.5 rounded border px-2.5 py-1 text-[10px] font-bold transition-colors uppercase tracking-widest", statusCls)}>
                         {selectedRow.status} <ChevronDown className="size-3" />
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-32 border-[#1E2730] bg-[#0A0C0B] text-muted-foreground">
-                      <DropdownMenuItem onClick={() => setSelectedRow({...selectedRow, status: "In progress"})} className="text-[11px] focus:bg-[#1E2730] focus:text-white">In progress</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSelectedRow({...selectedRow, status: "Review"})} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Review</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSelectedRow({...selectedRow, status: "Closed"})} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Closed</DropdownMenuItem>
+                    <DropdownMenuContent align="end" className="w-32 border-[#28313C] bg-[#0E1116] text-muted-foreground">
+                      <DropdownMenuItem onClick={() => updateSelectedStatus("Ready", "In progress")} className="text-[11px] focus:bg-[#28313C] focus:text-white">In progress</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => updateSelectedStatus("Needs review", "Review")} className="text-[11px] focus:bg-[#28313C] focus:text-white">Review</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => updateSelectedStatus("Done", "Monitoring")} className="text-[11px] focus:bg-[#28313C] focus:text-white">Closed</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <button onClick={() => setSelectedRow(null)} className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-[#1E2730] hover:text-white transition-colors">
+                  <button onClick={() => setSelectedRowId(null)} className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-[#28313C] hover:text-white transition-colors">
                     <X className="size-4" />
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center gap-6 border-b border-[#1E2730] px-5 text-[10px] font-semibold shrink-0">
-                <button onClick={() => toast.info("Viewing Overview")} className="border-b-2 border-white py-3 text-white">Overview</button>
-                <button onClick={() => toast.info("Viewing Evidence")} className="border-b-2 border-transparent py-3 text-muted-foreground hover:text-white transition-colors">Evidence (6)</button>
-                <button onClick={() => toast.info("Viewing Impact")} className="border-b-2 border-transparent py-3 text-muted-foreground hover:text-white transition-colors">Impact</button>
-                <button onClick={() => toast.info("Viewing Timeline")} className="border-b-2 border-transparent py-3 text-muted-foreground hover:text-white transition-colors">Timeline</button>
-                <button onClick={() => toast.info("Viewing Activity")} className="border-b-2 border-transparent py-3 text-muted-foreground hover:text-white transition-colors">Activity</button>
-                <button onClick={() => toast.info("Viewing Related items")} className="border-b-2 border-transparent py-3 text-muted-foreground hover:text-white transition-colors">Related (4)</button>
+              <div className="flex items-center gap-6 border-b border-[#28313C] px-5 text-[10px] font-semibold shrink-0">
+                {detailTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveDetailTab(tab.id)}
+                    className={cn(
+                      "border-b-2 py-3 transition-colors",
+                      activeDetailTab === tab.id
+                        ? "border-white text-white"
+                        : "border-transparent text-muted-foreground hover:text-white"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
 
               <div className="flex-1 overflow-y-auto scrollbar-thin p-5 flex flex-col gap-6">
-                
+                {activeDetailTab !== "overview" ? (
+                  <div className="rounded-lg border border-[#28313C] bg-[#141A22]/40 p-3 text-[10px] text-muted-foreground">
+                    {activeDetailTab === "evidence" ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="truncate">Primary source: <span className="text-white">{selectedRow.evidence}</span></span>
+                        <button
+                          type="button"
+                          onClick={() => onNavigate?.("data", {
+                            evidenceId: selectedRow.evidenceId,
+                            findingId: selectedRow.id,
+                            proofTrailId: selectedRow.pt,
+                            source: "savings",
+                          })}
+                          className="shrink-0 text-primary hover:underline"
+                        >
+                          Open in Data Intake
+                        </button>
+                      </div>
+                    ) : null}
+                    {activeDetailTab === "impact" ? (
+                      <div className="grid grid-cols-3 gap-3">
+                        {breakdown.map((item) => (
+                          <div key={item.label} className="rounded border border-[#28313C] bg-[#0E1116] p-2">
+                            <div className="text-white">{item.label}</div>
+                            <div className="mt-1 text-primary">{item.pct}% of impact</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    {activeDetailTab === "timeline" ? (
+                      <div className="grid gap-2">
+                        {timelineItems.slice(0, 4).map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setSelectedRowId(item.id)}
+                            className="flex items-center justify-between rounded border border-[#28313C] bg-[#0E1116] px-3 py-2 text-left hover:bg-[#28313C]"
+                          >
+                            <span className="truncate text-white">{item.title}</span>
+                            <span className="shrink-0 text-muted-foreground">{item.date}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    {activeDetailTab === "activity" ? (
+                      <div className="grid gap-2">
+                        <div className="flex items-center justify-between rounded border border-[#28313C] bg-[#0E1116] px-3 py-2">
+                          <span>Status</span>
+                          <span className="text-white">{selectedRow.status}</span>
+                        </div>
+                        <div className="flex items-center justify-between rounded border border-[#28313C] bg-[#0E1116] px-3 py-2">
+                          <span>Owner</span>
+                          <span className="text-white">{selectedRow.owner.split("\n")[0]}</span>
+                        </div>
+                      </div>
+                    ) : null}
+                    {activeDetailTab === "related" ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="truncate">Related approval-safe action: <span className="text-white">{selectedRow.action.split("\n")[0]}</span></span>
+                        <button
+                          type="button"
+                          onClick={() => onNavigate?.("approvals", {
+                            actionId: selectedRow.actionId,
+                            findingId: selectedRow.id,
+                            evidenceId: selectedRow.evidenceId,
+                            proofTrailId: selectedRow.pt,
+                            source: "savings",
+                          })}
+                          className="shrink-0 text-primary hover:underline"
+                        >
+                          Open approval
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 {/* Stats Row */}
                 <div className="grid grid-cols-4 gap-4">
                   <div className="col-span-1 flex flex-col gap-1">
@@ -490,7 +904,7 @@ export default function SavingsRadar({ onNavigate }) {
                     <span className="text-lg font-bold tabular-nums text-white mt-0.5">{selectedRow.impact}</span>
                     <span className="text-[9px] text-muted-foreground leading-tight whitespace-nowrap">Annual opportunity</span>
                   </div>
-                  <div className="col-span-1 flex flex-col gap-1 items-center border-l border-[#1E2730]">
+                  <div className="col-span-1 flex flex-col gap-1 items-center border-l border-[#28313C]">
                     <span className="text-[8px] font-semibold uppercase tracking-widest text-muted-foreground">Confidence</span>
                     <div className="relative flex size-10 items-center justify-center mt-1">
                       <svg viewBox="0 0 36 36" className="absolute inset-0 size-full -rotate-90">
@@ -501,11 +915,11 @@ export default function SavingsRadar({ onNavigate }) {
                     </div>
                     <span className="text-[9px] font-bold text-primary mt-1">{selectedRow.conf >= 90 ? "High" : "Medium"}</span>
                   </div>
-                  <div className="col-span-1 flex flex-col gap-1 pl-4 border-l border-[#1E2730]">
+                  <div className="col-span-1 flex flex-col gap-1 pl-4 border-l border-[#28313C]">
                     <span className="text-[8px] font-semibold uppercase tracking-widest text-muted-foreground">Category</span>
                     <span className="text-[11px] font-bold text-white mt-1">{selectedRow.category}</span>
                   </div>
-                  <div className="col-span-1 flex flex-col gap-1 pl-4 border-l border-[#1E2730]">
+                  <div className="col-span-1 flex flex-col gap-1 pl-4 border-l border-[#28313C]">
                     <span className="text-[8px] font-semibold uppercase tracking-widest text-muted-foreground">Owner</span>
                     <span className="text-[11px] font-bold text-white mt-1 whitespace-nowrap">{selectedRow.owner.split('\n')[0]}</span>
                     <span className="text-[9px] text-muted-foreground whitespace-nowrap">{selectedRow.owner.split('\n')[1]}</span>
@@ -517,14 +931,14 @@ export default function SavingsRadar({ onNavigate }) {
                   </div>
                 </div>
 
-                <div className="w-full h-px bg-[#1E2730]" />
+                <div className="w-full h-px bg-[#28313C]" />
 
                 {/* Risk Narrative & Impact Breakdown */}
                 <div className="grid grid-cols-2 gap-6">
                   <div className="flex flex-col gap-2">
                     <span className="text-[10px] font-semibold text-white">Risk narrative</span>
                     <p className="text-[11px] leading-relaxed text-muted-foreground">
-                      {narrative}
+                      {detailNarrative}
                     </p>
                   </div>
                   <div className="flex flex-col gap-3">
@@ -532,12 +946,12 @@ export default function SavingsRadar({ onNavigate }) {
                       <span className="text-[10px] font-semibold text-white">Impact breakdown</span>
                       <span className="text-[10px] text-muted-foreground">Total: {selectedRow.impact}</span>
                     </div>
-                    
+
                     <div className="flex flex-col gap-2">
                       {breakdown.map((b, i) => (
                         <div key={i} className="flex items-center gap-2">
                           <span className="text-[9px] text-muted-foreground w-20 truncate">{b.label}</span>
-                          <div className="flex-1 h-1.5 bg-[#1E2730] rounded-full overflow-hidden">
+                          <div className="flex-1 h-1.5 bg-[#28313C] rounded-full overflow-hidden">
                             <div className="h-full bg-primary" style={{ width: `${b.pct}%` }} />
                           </div>
                           <span className="text-[9px] text-muted-foreground w-16 text-right whitespace-nowrap">{b.pct}%</span>
@@ -558,16 +972,27 @@ export default function SavingsRadar({ onNavigate }) {
                   </div>
                 </div>
 
-                <div className="w-full h-px bg-[#1E2730]" />
+                <div className="w-full h-px bg-[#28313C]" />
 
                 {/* Supporting evidence */}
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-semibold text-white">Supporting evidence (3)</span>
-                    <button onClick={() => toast.info("Opening all evidence files")} className="text-[10px] text-primary hover:underline">View all</button>
+                    <button
+                      type="button"
+                      onClick={() => onNavigate?.("data", {
+                        evidenceId: selectedRow.evidenceId,
+                        findingId: selectedRow.id,
+                        proofTrailId: selectedRow.pt,
+                        source: "savings",
+                      })}
+                      className="text-[10px] text-primary hover:underline"
+                    >
+                      View all
+                    </button>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="col-span-1 flex items-start gap-2 border border-[#1E2730] rounded-lg p-2.5 bg-[#141B21]/50 cursor-pointer hover:bg-[#1E2730]/50 transition-colors">
+                    <div className="col-span-1 flex items-start gap-2 border border-[#28313C] rounded-lg p-2.5 bg-[#141A22]/50 cursor-pointer hover:bg-[#28313C]/50 transition-colors">
                       <div className={cn("flex size-6 shrink-0 items-center justify-center rounded text-[7px] font-bold", evidenceBadgeClass)}>{evidenceExt}</div>
                       <div className="flex flex-col min-w-0">
                         <span className="text-[9px] text-white truncate">{selectedRow.evidence}</span>
@@ -590,13 +1015,23 @@ export default function SavingsRadar({ onNavigate }) {
                         </div>
                       ))}
                     </div>
-                    <button onClick={() => toast.info("Opening all facts checklist")} className="text-left text-[10px] text-primary hover:underline mt-1 w-fit">View all facts (18) →</button>
+                    <button
+                      onClick={() => onNavigate?.("data", {
+                        evidenceId: selectedRow.evidenceId,
+                        findingId: selectedRow.id,
+                        proofTrailId: selectedRow.pt,
+                        source: "savings",
+                      })}
+                      className="text-left text-[10px] text-primary hover:underline mt-1 w-fit"
+                    >
+                      View all facts (18) →
+                    </button>
                   </div>
 
                   {/* Recommended agent action */}
                   <div className="flex flex-col gap-3">
                     <span className="text-[10px] font-semibold text-white">Recommended agent action</span>
-                    
+
                     <div className="flex flex-col border border-primary/20 bg-primary/5 rounded-lg p-3 relative overflow-hidden">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-2.5">
@@ -611,7 +1046,7 @@ export default function SavingsRadar({ onNavigate }) {
                         </div>
                         <button
                            type="button"
-                           onClick={() => { setAgentRunning(true); setTimeout(() => { setAgentRunning(false); toast.success(`${recommendedAgent} completed analysis`); }, 2500); }}
+                           onClick={handleRunAgent}
                            disabled={agentRunning}
                            className="flex items-center gap-1.5 rounded border border-primary/30 bg-transparent px-3 py-1.5 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-60">
                            {agentRunning ? <><RefreshCw className="size-3 animate-spin" /> Running...</> : 'Run agent'}
@@ -634,7 +1069,16 @@ export default function SavingsRadar({ onNavigate }) {
                         </div>
                       </div>
 
-                      <button onClick={() => toast.info("Opening detailed action plan")} className="text-left text-[10px] text-primary hover:underline mt-3 w-fit flex items-center gap-1">
+                      <button
+                        onClick={() => onNavigate?.("approvals", {
+                          actionId: selectedRow.actionId,
+                          findingId: selectedRow.id,
+                          evidenceId: selectedRow.evidenceId,
+                          proofTrailId: selectedRow.pt,
+                          source: "savings",
+                        })}
+                        className="text-left text-[10px] text-primary hover:underline mt-3 w-fit flex items-center gap-1"
+                      >
                         View action plan <ArrowUpRight className="size-3" />
                       </button>
                     </div>
@@ -643,28 +1087,45 @@ export default function SavingsRadar({ onNavigate }) {
               </div>
 
               {/* Bottom Actions Bar */}
-              <div className="flex items-center justify-between border-t border-[#1E2730] px-5 py-3 shrink-0 bg-[#0A0C0B]">
-                <button onClick={() => toast.info("Opening proof trail")} className="text-[11px] font-medium text-white hover:underline">
+              <div className="flex items-center justify-between border-t border-[#28313C] px-5 py-3 shrink-0 bg-[#0E1116]">
+                <button onClick={handleOpenProofTrail} className="text-[11px] font-medium text-white hover:underline">
                   View proof trail
                 </button>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => toast.success("Approval created")} className="rounded bg-primary/20 border border-primary/30 px-4 py-1.5 text-[10px] font-bold text-primary transition-colors hover:bg-primary/30">
+                  <button onClick={handleCreateApproval} className="rounded bg-primary/20 border border-primary/30 px-4 py-1.5 text-[10px] font-bold text-primary transition-colors hover:bg-primary/30">
                     Create approval
                   </button>
-                  <button onClick={() => toast.info("Opening chat")} className="flex items-center gap-1.5 rounded border border-[#1E2730] bg-[#141B21] px-3 py-1.5 text-[10px] text-white hover:bg-[#1E2730] transition-colors">
+                  <button onClick={() => onNavigate?.("chat")} className="flex items-center gap-1.5 rounded border border-[#28313C] bg-[#141A22] px-3 py-1.5 text-[10px] text-white hover:bg-[#28313C] transition-colors">
                     <Zap className="size-3" /> Ask AI
                   </button>
-                  <button onClick={() => toast.success("Exporting data")} className="flex items-center gap-1.5 rounded border border-[#1E2730] bg-transparent px-3 py-1.5 text-[10px] text-white hover:bg-[#141B21] transition-colors">
+                  <button onClick={handleExport} className="flex items-center gap-1.5 rounded border border-[#28313C] bg-transparent px-3 py-1.5 text-[10px] text-white hover:bg-[#141A22] transition-colors">
                     <Download className="size-3" /> Export
                   </button>
-                  <button onClick={() => toast.info("More options")} className="flex size-7 items-center justify-center rounded border border-[#1E2730] text-muted-foreground hover:bg-[#1E2730] hover:text-white transition-colors">
-                    <span className="mb-2 tracking-widest text-[16px] leading-none">...</span>
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="flex size-7 items-center justify-center rounded border border-[#28313C] text-muted-foreground hover:bg-[#28313C] hover:text-white transition-colors">
+                      <span className="mb-2 tracking-widest text-[16px] leading-none">...</span>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44 border-[#28313C] bg-[#0E1116] text-muted-foreground">
+                      <DropdownMenuItem onClick={handleOpenProofTrail} className="text-[11px] focus:bg-[#28313C] focus:text-white">Open proof trail</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => updateSelectedStatus("Needs review", "Review")} className="text-[11px] focus:bg-[#28313C] focus:text-white">Mark for review</DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => onNavigate?.("data", {
+                          evidenceId: selectedRow.evidenceId,
+                          findingId: selectedRow.id,
+                          proofTrailId: selectedRow.pt,
+                          source: "savings",
+                        })}
+                        className="text-[11px] focus:bg-[#28313C] focus:text-white"
+                      >
+                        Open source evidence
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="flex h-full flex-col items-center justify-center rounded-xl border border-[#1E2730] border-dashed bg-[#0A0C0B]/50 p-8 text-center">
+            <div className="flex h-full flex-col items-center justify-center rounded-xl border border-[#28313C] border-dashed bg-[#0E1116]/50 p-8 text-center">
               <PackageOpen className="mb-3 size-8 text-muted-foreground/30" />
               <span className="text-sm font-semibold text-white">Select an opportunity</span>
               <span className="mt-1 max-w-[200px] text-[11px] text-muted-foreground">Click on any savings opportunity to view its detailed analysis.</span>

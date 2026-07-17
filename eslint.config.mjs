@@ -10,6 +10,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Browser profiles captured during local visual QA contain vendored
+    // extension scripts and should not be linted as project source.
+    "qa-artifacts/**/chrome-profile-*/**",
+    "qa-artifacts/**/chrome-debug-profile-*/**",
   ]),
 ]);
 

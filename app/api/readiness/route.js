@@ -1,4 +1,4 @@
-import { getRequestWorkspaceContext, publicSession } from "../../../lib/server/auth-session";
+import { publicSession, requireContextCapability, requireRequestWorkspaceContext, sessionRequiredResponse } from "../../../lib/server/auth-session";
 import { getWorkspaceSnapshot } from "../../../lib/server/evidence-store";
 import { isSupabaseWorkspaceStoreConfigured } from "../../../lib/server/supabase-workspace-store";
 
@@ -32,6 +32,8 @@ function buildReadiness(workspace, backend) {
   const findings = workspace.findings || [];
   const actions = workspace.actions || [];
   const reports = workspace.reports || [];
+  const excelViews = workspace.excelWorkspaceViews || [];
+  const excelRowCount = (workspace.spendRows || []).length + (workspace.invoices || []).length + (workspace.contracts || []).length;
   const proofTrail = workspace.proofGraph?.trail || [];
   const diagnostics = workspace.diagnostics || {};
   const auditLog = workspace.auditLog || [];
@@ -49,6 +51,7 @@ function buildReadiness(workspace, backend) {
     readinessItem("agents", "Agents produced outputs", agentOutputCount, `${agentOutputCount} supervised agent outputs`, 10),
     readinessItem("approvals", "Approval queue active", actions.length, `${openActions.length} open approvals / ${decisionCount} decisions`, 10),
     readinessItem("reports", "Board reports generated", reports.length && reports.some((report) => readyStatuses.has(report.status)), `${reports.length} reports / ${reports.filter((report) => readyStatuses.has(report.status)).length} board-ready`, 10),
+    readinessItem("excel", "Excel workspace data available", excelViews.length || excelRowCount, `${excelRowCount} workspace rows / ${excelViews.length} saved views`, 4),
     readinessItem("audit", "Audit trail recorded", auditLog.length || decisionCount, `${auditLog.length} audit events / ${decisionCount} human decisions`, 6),
     readinessItem("provider", "AI provider configured", backend.geminiConfigured, backend.geminiConfigured ? "Gemini key configured" : "Gemini missing; local fallback active", 3),
     readinessItem("persistence", "Persistence configured", backend.storage === "supabase", backend.storage === "supabase" ? "Supabase persistence active" : "Local fallback active", 3),
@@ -73,6 +76,8 @@ function buildReadiness(workspace, backend) {
       proofTrails: proofTrail.length,
       reports: reports.length,
       boardReadyReports: reports.filter((report) => readyStatuses.has(report.status)).length,
+      excelViews: excelViews.length,
+      excelRows: excelRowCount,
       auditEvents: auditLog.length,
       humanDecisions: decisionCount,
     },
@@ -89,7 +94,7 @@ function buildReadiness(workspace, backend) {
       section("business-live", "Business Live", "working", liveEvents.length ? "ready" : "qa_sample_available", "Webhook-ready live events for commerce, ads, supplier, inventory, and payment signals."),
       section("mobile-approval-api", "Mobile Approval API", "working", actions.length ? "ready" : "needs_data", "Compact approval queue and decision endpoint for future mobile confirmation."),
       section("crm", "CRM Layer", "roadmap", "roadmap", "Roadmap only: contacts, deals, timelines, and approval-safe CRM actions."),
-      section("excel", "Excel Layer", "roadmap", "roadmap", "Roadmap only: spreadsheet cleanup, formulas, anomaly detection, and XLSX export."),
+      section("excel", "Excel Layer", "working", excelViews.length || excelRowCount ? "ready" : "needs_data", "Workspace-backed spend, invoice, and contract rows with saved views, CSV export, and notes. Formula execution and XLSX write-back remain locked."),
       section("native-mobile-app", "Native Mobile App", "roadmap", "roadmap", "Roadmap only: approvals, monitoring, ask-AI status, and support UI."),
     ],
     walkthroughScript: [
@@ -146,15 +151,25 @@ function toMarkdown(readiness) {
 
 // Investor QA endpoint: shows what is working, QA-ready, or roadmap.
 export async function GET(request) {
+  const context = await requireRequestWorkspaceContext(request);
+  if (!context) return sessionRequiredResponse();
+
   const url = new URL(request.url);
   const format = url.searchParams.get("format") || "json";
-  const context = getRequestWorkspaceContext(request);
+  if (format === "markdown") {
+    const denied = requireContextCapability(context, "export_data");
+    if (denied) return denied;
+  }
   const workspace = await getWorkspaceSnapshot({ workspaceId: context.workspaceId });
+  const liveIngestTokenConfigured = Boolean(
+    process.env.GENIUS_LIVE_INGEST_SECRET
+    || (process.env.GENIUS_LIVE_INGEST_TOKEN && process.env.GENIUS_LIVE_INGEST_WORKSPACE_ID),
+  );
   const backend = {
     storage: isSupabaseWorkspaceStoreConfigured() ? "supabase" : "local",
     aiProvider: "Gemini",
     geminiConfigured: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY),
-    liveIngestTokenConfigured: Boolean(process.env.GENIUS_LIVE_INGEST_TOKEN),
+    liveIngestTokenConfigured,
     externalExecution: "disabled",
   };
   const readiness = buildReadiness(workspace, backend);

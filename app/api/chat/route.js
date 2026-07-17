@@ -1,6 +1,13 @@
 import { decodeGeminiStreamText, streamChatWithGemini } from "../../../lib/server/gemini";
-import { getRequestWorkspaceContext } from "../../../lib/server/auth-session";
-import { getWorkspaceSnapshot } from "../../../lib/server/evidence-store";
+import { requireRequestCapability } from "../../../lib/server/auth-session";
+import {
+  appendChatConversationTurn,
+  createChatConversation,
+  deleteChatConversation,
+  getWorkspaceSnapshot,
+  updateChatConversation,
+} from "../../../lib/server/evidence-store";
+import { applyRateLimit, guardMutationRequest } from "../../../lib/server/request-security";
 
 export const runtime = "nodejs";
 
@@ -9,7 +16,7 @@ function cleanMessages(messages) {
     .filter((message) => message?.role === "user" || message?.role === "assistant")
     .map((message) => ({
       role: message.role,
-      text: String(message.text || "").slice(0, 12000),
+      text: String(message.text || message.content || "").slice(0, 12000),
     }))
     .filter((message) => message.text.trim())
     .slice(-16);
@@ -150,11 +157,12 @@ function textFromSseEvent(eventText) {
 }
 
 // Converts Gemini SSE chunks into plain text chunks that the browser can render immediately.
-function createPlainTextStream(geminiBody) {
+function createPlainTextStream(geminiBody, onComplete) {
   const reader = geminiBody.getReader();
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   let buffer = "";
+  let completeText = "";
 
   return new ReadableStream({
     async pull(controller) {
@@ -162,7 +170,13 @@ function createPlainTextStream(geminiBody) {
 
       if (done) {
         const finalText = textFromSseEvent(buffer);
-        if (finalText) controller.enqueue(encoder.encode(finalText));
+        if (finalText) {
+          completeText += finalText;
+          controller.enqueue(encoder.encode(finalText));
+        }
+        if (onComplete) {
+          await onComplete(completeText);
+        }
         controller.close();
         return;
       }
@@ -173,7 +187,10 @@ function createPlainTextStream(geminiBody) {
 
       for (const eventText of events) {
         const text = textFromSseEvent(eventText);
-        if (text) controller.enqueue(encoder.encode(text));
+        if (text) {
+          completeText += text;
+          controller.enqueue(encoder.encode(text));
+        }
       }
     },
     cancel() {
@@ -284,17 +301,155 @@ function buildLocalChatFallback({ messages, evidence, liveEvents, diagnostics, p
   ].filter(Boolean).join("\n");
 }
 
+function chatMessageSummary(message) {
+  return {
+    id: message.id,
+    role: message.role,
+    content: message.content,
+    provider: message.provider,
+    model: message.model,
+    mode: message.mode,
+    createdAt: message.createdAt,
+    metadata: message.metadata || {},
+  };
+}
+
+function chatConversationSummary(conversation) {
+  return {
+    id: conversation.id,
+    title: conversation.title,
+    mode: conversation.mode,
+    status: conversation.status,
+    pinned: Boolean(conversation.pinned),
+    createdAt: conversation.createdAt,
+    updatedAt: conversation.updatedAt,
+    archivedAt: conversation.archivedAt || null,
+    tags: Array.isArray(conversation.tags) ? conversation.tags : [],
+    messageCount: Array.isArray(conversation.messages) ? conversation.messages.length : 0,
+    messages: (conversation.messages || []).map(chatMessageSummary),
+  };
+}
+
+async function persistChatTurn({ context, conversationId, userText, assistantText, provider, model, mode, title, providerError }) {
+  try {
+    await appendChatConversationTurn(
+      { conversationId, userText, assistantText, provider, model, mode, title, providerError },
+      context,
+      { workspaceId: context.workspaceId },
+    );
+  } catch (error) {
+    console.warn(`[GENIUS chat] turn persistence failed: ${error?.message || String(error)}`);
+  }
+}
+
+export async function GET(request) {
+  const guard = applyRateLimit(request, { keyPrefix: "chat:get", limit: 120, windowMs: 10 * 60_000 });
+  if (guard) return guard;
+
+  const { context, response } = await requireRequestCapability(request, "ask_ai");
+  if (response) return response;
+
+  const workspace = await getWorkspaceSnapshot({ workspaceId: context.workspaceId });
+  return Response.json(
+    {
+      conversations: (workspace.chatConversations || []).map(chatConversationSummary),
+    },
+    { headers: { "Cache-Control": "private, no-store" } },
+  );
+}
+
 // Chat endpoint used by the frontend composer; returns a streaming text response.
 export async function POST(request) {
+  const guard = guardMutationRequest(request, { keyPrefix: "chat:post", limit: 40, windowMs: 10 * 60_000 });
+  if (guard) return guard;
+
+  const { context, response } = await requireRequestCapability(request, "ask_ai");
+  if (response) return response;
+
   try {
     const body = await request.json();
+    const mode = String(body.mode || "Ask").slice(0, 60);
+
+    if (body.action === "create") {
+      const created = await createChatConversation(
+        { title: body.title || "New workspace chat", mode, tags: body.tags },
+        context,
+        { workspaceId: context.workspaceId },
+      );
+      const workspace = await getWorkspaceSnapshot({ workspaceId: context.workspaceId });
+      return Response.json(
+        {
+          workspace,
+          conversation: chatConversationSummary(created.conversation),
+          conversations: (workspace.chatConversations || []).map(chatConversationSummary),
+        },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
+    }
+
+    if (body.action === "branch") {
+      const workspace = await getWorkspaceSnapshot({ workspaceId: context.workspaceId });
+      const sourceConv = workspace.chatConversations?.find(c => c.id === body.sourceId);
+      if (!sourceConv) {
+        return Response.json({ error: "Source conversation not found." }, { status: 404 });
+      }
+
+      let messagesToCopy = sourceConv.messages || [];
+      if (body.messageId) {
+        const messageIndex = messagesToCopy.findIndex(m => m.id === body.messageId);
+        if (messageIndex !== -1) {
+          messagesToCopy = messagesToCopy.slice(0, messageIndex + 1);
+        }
+      }
+
+      const created = await createChatConversation(
+        {
+          title: `${sourceConv.title} (Branch)`,
+          mode: sourceConv.mode,
+          tags: Array.from(new Set([...(sourceConv.tags || []), "Branch"])).slice(0, 8),
+          messages: messagesToCopy,
+          branchedFrom: sourceConv.id,
+          branchMessageId: body.messageId || "",
+        },
+        context,
+        { workspaceId: context.workspaceId },
+      );
+
+      const updatedWorkspace = await getWorkspaceSnapshot({ workspaceId: context.workspaceId });
+      const newConv = updatedWorkspace.chatConversations?.find(c => c.id === created.conversation.id) || created.conversation;
+
+      return Response.json(
+        {
+          workspace: updatedWorkspace,
+          conversation: chatConversationSummary(newConv),
+          conversations: (updatedWorkspace.chatConversations || []).map(chatConversationSummary),
+        },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
+    }
+
     const messages = cleanMessages(body.messages);
+    const requestedConversationId = String(body.conversationId || "").trim();
 
     if (!messages.length) {
       return Response.json({ error: "At least one message is required." }, { status: 400 });
     }
 
-    const context = getRequestWorkspaceContext(request);
+    const latestUserText = [...messages].reverse().find((message) => message.role === "user")?.text || "";
+    if (!latestUserText) {
+      return Response.json({ error: "A user message is required." }, { status: 400 });
+    }
+
+    let conversationId = requestedConversationId && requestedConversationId !== "new" ? requestedConversationId : "";
+    if (!conversationId) {
+      const created = await createChatConversation(
+        { title: body.title || latestUserText, mode },
+        context,
+        { workspaceId: context.workspaceId },
+      );
+      conversationId = created.conversation.id;
+    }
+
     const workspace = await getWorkspaceSnapshot({ workspaceId: context.workspaceId });
     const evidence = cleanEvidence(mergeById(workspace.evidence, body.evidence));
     const liveEvents = cleanLiveEvents(mergeById(workspace.liveEvents, body.liveEvents));
@@ -322,11 +477,24 @@ export async function POST(request) {
         language,
       });
 
-      return new Response(createPlainTextStream(geminiBody), {
+      return new Response(createPlainTextStream(geminiBody, async (assistantText) => {
+        if (!assistantText.trim()) return;
+        await persistChatTurn({
+          context,
+          conversationId,
+          userText: latestUserText,
+          assistantText,
+          provider: "gemini",
+          model: "gemini",
+          mode,
+          title: body.title,
+        });
+      }), {
         headers: {
           "Content-Type": "text/plain; charset=utf-8",
           "Cache-Control": "no-store",
           "x-genius-chat-provider": "gemini",
+          "x-genius-conversation-id": conversationId,
         },
       });
     } catch (error) {
@@ -342,16 +510,76 @@ export async function POST(request) {
         language,
         providerError: error.message || "Gemini request failed.",
       });
+      await persistChatTurn({
+        context,
+        conversationId,
+        userText: latestUserText,
+        assistantText: fallback,
+        provider: "local-fallback",
+        model: "workspace-local",
+        mode,
+        title: body.title,
+        providerError: error.message || "Gemini request failed.",
+      });
 
       return new Response(createTextStream(fallback), {
         headers: {
           "Content-Type": "text/plain; charset=utf-8",
           "Cache-Control": "no-store",
           "x-genius-chat-provider": "local-fallback",
+          "x-genius-conversation-id": conversationId,
         },
       });
     }
   } catch (error) {
     return Response.json({ error: error.message || "Chat request failed." }, { status: 500 });
+  }
+}
+
+export async function PATCH(request) {
+  const guard = guardMutationRequest(request, { keyPrefix: "chat:patch", limit: 80, windowMs: 10 * 60_000 });
+  if (guard) return guard;
+
+  const { context, response } = await requireRequestCapability(request, "ask_ai");
+  if (response) return response;
+
+  try {
+    const body = await request.json().catch(() => ({}));
+    const { workspace, conversation } = await updateChatConversation(body, context, { workspaceId: context.workspaceId });
+
+    return Response.json(
+      {
+        workspace,
+        conversation: chatConversationSummary(conversation),
+        conversations: (workspace.chatConversations || []).map(chatConversationSummary),
+      },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+  } catch (error) {
+    return Response.json({ error: error.message || "Chat conversation could not be updated." }, { status: 400 });
+  }
+}
+
+export async function DELETE(request) {
+  const guard = guardMutationRequest(request, { keyPrefix: "chat:delete", limit: 40, windowMs: 10 * 60_000 });
+  if (guard) return guard;
+
+  const { context, response } = await requireRequestCapability(request, "ask_ai");
+  if (response) return response;
+
+  try {
+    const body = await request.json().catch(() => ({}));
+    const { workspace, conversationId } = await deleteChatConversation(body, context, { workspaceId: context.workspaceId });
+
+    return Response.json(
+      {
+        workspace,
+        conversationId,
+        conversations: (workspace.chatConversations || []).map(chatConversationSummary),
+      },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+  } catch (error) {
+    return Response.json({ error: error.message || "Chat conversation could not be deleted." }, { status: 400 });
   }
 }

@@ -1,5 +1,6 @@
-import { getRequestWorkspaceContext } from "../../../../lib/server/auth-session";
+import { requireRequestCapability } from "../../../../lib/server/auth-session";
 import { getWorkspaceSnapshot } from "../../../../lib/server/evidence-store";
+import { applyRateLimit } from "../../../../lib/server/request-security";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,7 @@ function filenameDate() {
 function exportableRecord(record) {
   const fields = record.fields && typeof record.fields === "object" ? record.fields : {};
   const extracted = record.extracted && typeof record.extracted === "object" ? record.extracted : {};
+  const spreadsheetRows = Array.isArray(extracted.spreadsheet_rows) ? extracted.spreadsheet_rows : [];
 
   return {
     id: record.id,
@@ -36,6 +38,9 @@ function exportableRecord(record) {
     documentType: extracted.document_type || "",
     invoiceNumber: extracted.invoice_number || "",
     paymentTerms: extracted.payment_terms || "",
+    spreadsheetRows: spreadsheetRows.length,
+    spreadsheetAmountTotal: extracted.spreadsheet_amount_total || spreadsheetRows.reduce((sum, row) => sum + Number(row.amount || 0), 0),
+    spreadsheetParseStatus: extracted.spreadsheet_parse_status || "",
     reviewedAt: record.reviewedAt || "",
     createdAt: record.createdAt || "",
     updatedAt: record.updatedAt || "",
@@ -67,6 +72,9 @@ function toCsv(records) {
     "documentType",
     "invoiceNumber",
     "paymentTerms",
+    "spreadsheetRows",
+    "spreadsheetAmountTotal",
+    "spreadsheetParseStatus",
     "reviewedAt",
     "createdAt",
     "updatedAt",
@@ -81,6 +89,12 @@ function toCsv(records) {
 
 // Exports reviewed extracted data for spreadsheets, CRM import, or investor QA.
 export async function GET(request) {
+  const guard = applyRateLimit(request, { keyPrefix: "evidence:export:get", limit: 30, windowMs: 10 * 60_000 });
+  if (guard) return guard;
+
+  const { context, response } = await requireRequestCapability(request, "export_data");
+  if (response) return response;
+
   const url = new URL(request.url);
   const format = url.searchParams.get("format") || "json";
   const scope = url.searchParams.get("scope") || "confirmed";
@@ -89,7 +103,6 @@ export async function GET(request) {
     return Response.json({ error: "Unsupported evidence export format. Use json or csv." }, { status: 400 });
   }
 
-  const context = getRequestWorkspaceContext(request);
   const workspace = await getWorkspaceSnapshot({ workspaceId: context.workspaceId });
   const records = filterRecords(workspace.evidence || [], scope).map(exportableRecord);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   CheckCircle2, Minus, TrendingDown, TrendingUp, X, Download,
   ChevronDown, Search, Filter, MoreHorizontal, Calendar, Bell, ChevronLeft, ChevronRight, Check
@@ -12,6 +12,7 @@ import {
 import { ConfBar, EvidenceLink, Ring, Sparkline, StatusDot, ApprovalPill } from "../shared";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useWorkspace } from "../workspace-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +31,71 @@ const toneText = {
 
 // ── Icons for KPIs ────────────────────────────────────────────────────────────────
 import { ShieldAlert, Fingerprint, Activity, Clock, AlertTriangle, AlertCircle, TrendingDown as TrendDownIcon, ListTodo } from "lucide-react";
+
+function formatCompactMoney(value) {
+  const amount = Math.max(0, Math.round(Number(value || 0)));
+  if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(amount >= 10_000_000 ? 0 : 1)}M`;
+  if (amount >= 1_000) return `$${Math.round(amount / 1_000)}K`;
+  return `$${amount.toLocaleString("en-US")}`;
+}
+
+function titleCase(value) {
+  return String(value || "")
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function diagnosticWorkflowStatus(status) {
+  if (["Open", "In progress", "Review", "Closed"].includes(status)) return status;
+  if (status === "Ready") return "Review";
+  return "Open";
+}
+
+function mapWorkspaceDiagnosticCategory(category) {
+  const score = Number(category.score || 0);
+  const impact = Number(category.impact || 0);
+  const workflowStatus = diagnosticWorkflowStatus(category.workflowStatus || category.status);
+  const owner = category.owner || "Unassigned";
+  const ownerRole = category.ownerRole || "Diagnostics";
+
+  return {
+    id: category.id,
+    category: titleCase(category.label || category.id),
+    description: category.summary || category.risk || "Workspace diagnostic category",
+    score,
+    scoreRing: true,
+    signals: Number(category.signals || 0),
+    signalTone: score < 55 || workflowStatus === "Open" ? "critical" : "warning",
+    impact: formatCompactMoney(impact),
+    impactTone: impact >= 1_000_000 ? "critical" : impact > 0 ? "warning" : "primary",
+    trend: category.status === "Ready" || workflowStatus === "Closed" ? "improving" : "flat",
+    confidence: Math.max(50, Math.min(99, score + 8)),
+    proofTrails: Array.isArray(category.proofTrailIds) ? category.proofTrailIds.length : 0,
+    owner: `${owner} / ${ownerRole}`,
+    status: workflowStatus,
+    recommendedAction: category.recommendedAction,
+    riskNarrative: category.risk || category.summary,
+    topDrivers: category.drivers,
+    workflowNote: category.workflowNote || "",
+  };
+}
+
+function buildWorkspaceDiagnosticKpis(diagnostics, metrics) {
+  const categories = diagnostics?.categories || [];
+  if (!categories.length) return diagnosticsKpis;
+
+  const open = categories.filter((category) => diagnosticWorkflowStatus(category.workflowStatus || category.status) !== "Closed").length;
+  const totalImpact = categories.reduce((sum, category) => sum + Number(category.impact || 0), 0);
+  const proofCoverage = Math.round(Number(diagnostics.proofScore || 0));
+
+  return [
+    { label: "Business health score", value: Math.round(Number(diagnostics.overallScore || 0)), unit: "/100", trend: "Live", sub: open ? `${open} open` : "Clear", subTone: open ? "warning" : "primary", ring: true },
+    { label: "Diagnostics score", value: Math.round(Number(diagnostics.overallScore || 0)), unit: "%", trend: "Workspace", tone: open ? "warning" : "primary" },
+    { label: "Proof coverage", value: proofCoverage, unit: "%", trend: `${metrics?.proofTrailCount || 0} trails`, tone: proofCoverage >= 70 ? "primary" : "warning" },
+    { label: "Approval backlog", value: metrics?.openApprovalCount || 0, unit: "", trend: `${metrics?.approvedActionCount || 0} approved`, tone: metrics?.openApprovalCount ? "warning" : "primary" },
+    { label: "Diagnostic impact", value: formatCompactMoney(totalImpact), trend: "Open exposure", tone: totalImpact ? "critical" : "primary" },
+  ];
+}
 
 function KpiIcon({ label, tone }) {
   const iconProps = { className: cn("size-4", toneText[tone] || "text-muted-foreground") };
@@ -53,12 +119,12 @@ function DiagKpi({ label, value, unit, trend, trendDir, sub, subTone, tone = "ne
 
   return (
     <div
-      className="group relative flex min-w-[150px] flex-1 animate-fade-up flex-col gap-3 overflow-hidden rounded-xl border border-[#1E2730] bg-[#0A0C0B] p-4 transition-all hover:bg-[#0d0f0e]"
+      className="group relative flex min-w-[150px] flex-1 animate-fade-up flex-col gap-3 overflow-hidden rounded-xl border border-[#28313C] bg-[#0E1116] p-4 transition-all hover:bg-[#0E1116]"
       style={{ animationDelay: `${index * 35}ms` }}
     >
       <div className="flex items-center gap-2">
         {!ring && (
-          <div className="flex size-7 items-center justify-center rounded-full border border-[#1E2730] bg-[#141B21]">
+          <div className="flex size-7 items-center justify-center rounded-full border border-[#28313C] bg-[#141A22]">
             <KpiIcon label={label.toUpperCase()} tone={tone} />
           </div>
         )}
@@ -118,11 +184,25 @@ function TrendEl({ trend }) {
 }
 
 // ── Detail Panel ────────────────────────────────────────────────────────────────
-function DetailPanel({ detail, onClose, onNavigate, signalsCount = 0, proofTrailsCount = 0 }) {
+function DetailPanel({ detail, onClose, onNavigate, onStatusChange, onAssignOwner, onArchive, canUpdate = true, isUpdating = false, signalsCount = 0, proofTrailsCount = 0 }) {
+  const scrollToSignals = () => {
+    document.getElementById("diagnostic-signals-table")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const shareDetail = async () => {
+    const text = `GENIUS diagnostic: ${detail.category} | ${detail.risk} | impact ${detail.estimatedImpact}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Diagnostic summary copied");
+    } catch {
+      toast.error("Copy failed");
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full overflow-hidden rounded-xl border border-[#1E2730] bg-[#0A0C0B]">
+    <div className="flex flex-col h-full overflow-hidden rounded-xl border border-[#28313C] bg-[#0E1116]">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[#1E2730] px-5 py-4 shrink-0">
+      <div className="flex items-center justify-between border-b border-[#28313C] px-5 py-4 shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex size-1.5 items-center justify-center rounded-full bg-critical" />
           <span className="text-sm font-semibold text-white">{detail.category}</span>
@@ -130,26 +210,42 @@ function DetailPanel({ detail, onClose, onNavigate, signalsCount = 0, proofTrail
         </div>
         <div className="flex items-center gap-1">
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1.5 rounded border border-[#1E2730] bg-transparent px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-[#1E2730]">
-                Open <ChevronDown className="size-3" />
+            <DropdownMenuTrigger className={cn(
+              "flex items-center gap-1.5 rounded border border-[#28313C] bg-transparent px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-[#28313C]",
+              (!canUpdate || isUpdating) && "cursor-not-allowed opacity-50",
+            )}>
+                {detail.status || "Open"} <ChevronDown className="size-3" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-40 border-[#1E2730] bg-[#0A0C0B] text-muted-foreground">
-              <DropdownMenuItem onClick={() => toast.success("Status changed to In progress")} className="text-[11px] focus:bg-[#1E2730] focus:text-white">In progress</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.success("Status changed to Review")} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Review</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.success("Status changed to Closed")} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Closed</DropdownMenuItem>
+            <DropdownMenuContent align="start" className="w-40 border-[#28313C] bg-[#0E1116] text-muted-foreground">
+              {["Open", "In progress", "Review", "Closed"].map((status) => (
+                <DropdownMenuItem
+                  key={status}
+                  disabled={!canUpdate || isUpdating}
+                  onClick={() => onStatusChange?.(detail.id, status)}
+                  className="text-[11px] focus:bg-[#28313C] focus:text-white"
+                >
+                  {status}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-[#1E2730] hover:text-white transition-colors ml-1">
+            <DropdownMenuTrigger className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-[#28313C] hover:text-white transition-colors ml-1">
                 <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40 border-[#1E2730] bg-[#0A0C0B] text-muted-foreground">
-              <DropdownMenuItem onClick={() => toast.info("Viewing details")} className="text-[11px] focus:bg-[#1E2730] focus:text-white">View details</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.success("Shared")} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Share</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.error("Archived")} className="text-[11px] focus:bg-[#1E2730] focus:text-critical text-critical">Archive</DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-40 border-[#28313C] bg-[#0E1116] text-muted-foreground">
+              <DropdownMenuItem onClick={() => onNavigate?.("diagnostics")} className="text-[11px] focus:bg-[#28313C] focus:text-white">View details</DropdownMenuItem>
+              <DropdownMenuItem onClick={shareDetail} className="text-[11px] focus:bg-[#28313C] focus:text-white">Share</DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={!canUpdate || isUpdating || detail.status === "Closed"}
+                onClick={() => onArchive?.(detail.id)}
+                className="text-[11px] focus:bg-[#28313C] focus:text-critical text-critical"
+              >
+                Archive
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <button type="button" onClick={onClose} className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-[#1E2730] hover:text-white transition-colors">
+          <button type="button" onClick={onClose} className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-[#28313C] hover:text-white transition-colors">
             <X className="size-4" />
           </button>
         </div>
@@ -179,7 +275,7 @@ function DetailPanel({ detail, onClose, onNavigate, signalsCount = 0, proofTrail
               </div>
             </div>
           </div>
-          <div className="col-span-1 flex flex-col gap-2 border-l border-[#1E2730] pl-6">
+          <div className="col-span-1 flex flex-col gap-2 border-l border-[#28313C] pl-6">
             <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Estimated Impact</span>
             <span className="text-xl font-bold tabular-nums text-white mt-1">{detail.estimatedImpact}</span>
             <span className="text-[10px] text-muted-foreground whitespace-nowrap">{detail.impactSub}</span>
@@ -188,17 +284,17 @@ function DetailPanel({ detail, onClose, onNavigate, signalsCount = 0, proofTrail
               <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Confidence</span>
               <div className="flex items-center gap-3">
                 <span className="text-[11px] font-bold tabular-nums text-white w-8">{detail.confidence}%</span>
-                <div className="h-1 flex-1 overflow-hidden rounded-full bg-[#1E2730]">
+                <div className="h-1 flex-1 overflow-hidden rounded-full bg-[#28313C]">
                   <div className="h-full rounded-full bg-primary/80" style={{ width: `${detail.confidence}%` }} />
                 </div>
               </div>
             </div>
           </div>
-          <div className="col-span-2 flex flex-col gap-3 border-l border-[#1E2730] pl-6">
+          <div className="col-span-2 flex flex-col gap-3 border-l border-[#28313C] pl-6">
             <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Top Drivers</span>
             <div className="flex flex-col gap-2">
-              {detail.topDrivers.map((d) => (
-                <div key={d.name} className="flex items-center justify-between">
+              {detail.topDrivers.map((d, index) => (
+                <div key={`${d.name}-${d.value}-${index}`} className="flex items-center justify-between">
                   <span className="text-[10px] text-muted-foreground">{d.name}</span>
                   <span className="text-[10px] font-medium text-white tabular-nums">{d.value} ({d.pct}%)</span>
                 </div>
@@ -208,12 +304,12 @@ function DetailPanel({ detail, onClose, onNavigate, signalsCount = 0, proofTrail
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-6 border-b border-[#1E2730] text-[11px] font-semibold shrink-0">
+        <div className="flex items-center gap-6 border-b border-[#28313C] text-[11px] font-semibold shrink-0">
           <button type="button" className="border-b-2 border-white pb-2 text-white">Overview</button>
-          <button type="button" className="border-b-2 border-transparent pb-2 text-muted-foreground hover:text-white transition-colors">Signals ({signalsCount})</button>
-          <button type="button" className="border-b-2 border-transparent pb-2 text-muted-foreground hover:text-white transition-colors">Proof trails ({proofTrailsCount})</button>
-          <button type="button" className="border-b-2 border-transparent pb-2 text-muted-foreground hover:text-white transition-colors">Trend</button>
-          <button type="button" className="border-b-2 border-transparent pb-2 text-muted-foreground hover:text-white transition-colors">Related (6)</button>
+          <button type="button" onClick={scrollToSignals} className="border-b-2 border-transparent pb-2 text-muted-foreground hover:text-white transition-colors">Signals ({signalsCount})</button>
+          <button type="button" onClick={() => onNavigate?.("data")} className="border-b-2 border-transparent pb-2 text-muted-foreground hover:text-white transition-colors">Proof trails ({proofTrailsCount})</button>
+          <button type="button" onClick={() => onNavigate?.("savings")} className="border-b-2 border-transparent pb-2 text-muted-foreground hover:text-white transition-colors">Trend</button>
+          <button type="button" onClick={() => onNavigate?.("reports")} className="border-b-2 border-transparent pb-2 text-muted-foreground hover:text-white transition-colors">Related (6)</button>
         </div>
 
         <div className="grid grid-cols-2 gap-8">
@@ -240,18 +336,19 @@ function DetailPanel({ detail, onClose, onNavigate, signalsCount = 0, proofTrail
               <div className="mt-3 flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => toast.success("Action plan created")}
+                  onClick={() => { toast.success("Opening Approvals to create an action plan."); onNavigate?.("approvals"); }}
                   className="rounded bg-primary/20 border border-primary/30 px-4 py-1.5 text-[11px] font-bold text-primary transition-colors hover:bg-primary/30"
                 >
                   Create action plan
                 </button>
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="flex items-center gap-1.5 rounded border border-[#1E2730] bg-[#141B21] px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-[#1E2730]">
+                  <DropdownMenuTrigger className="flex items-center gap-1.5 rounded border border-[#28313C] bg-[#141A22] px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-[#28313C]">
                       Assign <ChevronDown className="size-3 text-muted-foreground" />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-40 border-[#1E2730] bg-[#0A0C0B] text-muted-foreground">
-                    <DropdownMenuItem onClick={() => toast.success("Assigned to Michael Wong")} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Michael Wong (Procurement)</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast.success("Assigned to Sarah Green")} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Sarah Green (Finance)</DropdownMenuItem>
+                  <DropdownMenuContent align="start" className="w-40 border-[#28313C] bg-[#0E1116] text-muted-foreground">
+                    <DropdownMenuItem disabled={!canUpdate || isUpdating} onClick={() => onAssignOwner?.(detail.id, "Michael Wong", "Procurement")} className="text-[11px] focus:bg-[#28313C] focus:text-white">Michael Wong (Procurement)</DropdownMenuItem>
+                    <DropdownMenuItem disabled={!canUpdate || isUpdating} onClick={() => onAssignOwner?.(detail.id, "Sarah Green", "Finance")} className="text-[11px] focus:bg-[#28313C] focus:text-white">Sarah Green (Finance)</DropdownMenuItem>
+                    <DropdownMenuItem disabled={!canUpdate || isUpdating} onClick={() => onAssignOwner?.(detail.id, "Riva Nelson", "Data Ops")} className="text-[11px] focus:bg-[#28313C] focus:text-white">Riva Nelson (Data Ops)</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -270,7 +367,7 @@ function DetailPanel({ detail, onClose, onNavigate, signalsCount = 0, proofTrail
                   </div>
                 ))}
               </div>
-              <button onClick={() => toast.info("Opening all evidence...")} className="text-left text-[11px] font-medium text-primary hover:underline mt-1">
+              <button onClick={() => onNavigate?.("data")} className="text-left text-[11px] font-medium text-primary hover:underline mt-1">
                 View all evidence (24) →
               </button>
             </div>
@@ -286,7 +383,7 @@ function DetailPanel({ detail, onClose, onNavigate, signalsCount = 0, proofTrail
                   </div>
                 ))}
               </div>
-              <button onClick={() => toast.info("Opening all facts...")} className="text-left text-[11px] font-medium text-primary hover:underline mt-1">
+              <button onClick={() => onNavigate?.("data")} className="text-left text-[11px] font-medium text-primary hover:underline mt-1">
                 View all facts (96) →
               </button>
             </div>
@@ -300,6 +397,7 @@ function DetailPanel({ detail, onClose, onNavigate, signalsCount = 0, proofTrail
 // ── buildDetailFromRow ────────────────────────────────────────────────────────────
 function buildDetailFromRow(row) {
   if (!row) return null;
+  const [ownerName, ownerRole] = String(row.owner || "Unassigned / Diagnostics").split(" / ");
   const topDriversMap = {
     'Spend Leakage': [
       { name: 'Maverick spend', value: '$1.28M', pct: 40 },
@@ -447,6 +545,7 @@ function buildDetailFromRow(row) {
     ],
   };
   return {
+    id: row.id,
     category: row.category,
     score: row.score,
     risk: riskToneMap[row.category] || 'Medium risk',
@@ -455,28 +554,163 @@ function buildDetailFromRow(row) {
     estimatedImpact: row.impact,
     impactSub: row.impactTone === 'critical' ? 'High business impact' : 'Medium business impact',
     confidence: row.confidence,
-    topDrivers: topDriversMap[row.category] || [{ name: 'Primary driver', value: row.impact, pct: 100 }],
-    riskNarrative: narrativeMap[row.category] || `${row.signals} signals detected. ${row.impact} exposure identified.`,
+    status: row.status,
+    owner: ownerName || "Unassigned",
+    ownerRole: ownerRole || "Diagnostics",
+    topDrivers: row.topDrivers || topDriversMap[row.category] || [{ name: 'Primary driver', value: row.impact, pct: 100 }],
+    riskNarrative: row.riskNarrative || narrativeMap[row.category] || `${row.signals} signals detected. ${row.impact} exposure identified.`,
     topEvidence: topEvidenceMap[row.category] || [{ name: 'Evidence_File.xlsx', value: row.impact }],
     extractedFacts: extractedFactsMap[row.category] || [{ fact: `${row.signals} signals analyzed`, ok: true }],
-    recommendedAction: recommendedActionMap[row.category] || 'Review findings and assign owner.',
+    recommendedAction: row.recommendedAction || recommendedActionMap[row.category] || 'Review findings and assign owner.',
     relatedImpacts: [],
+    workflowNote: row.workflowNote || "",
   };
 }
 
 // ── Main Export ───────────────────────────────────────────────────────────────────
 export default function Diagnostics({ onNavigate }) {
-  const [selectedRow, setSelectedRow] = useState(diagnosticsRows[0]);
+  const { diagnostics, metrics, updateDiagnosticWorkflow, can } = useWorkspace();
+  const canUpdateDiagnostics = can("decide_approvals");
+  const workspaceRows = useMemo(() => {
+    const categories = diagnostics?.categories || [];
+    return categories.length ? categories.map(mapWorkspaceDiagnosticCategory) : diagnosticsRows;
+  }, [diagnostics?.categories]);
+  const diagnosticKpis = useMemo(() => buildWorkspaceDiagnosticKpis(diagnostics, metrics), [diagnostics, metrics]);
+  const [statusById, setStatusById] = useState({});
+  const [ownerById, setOwnerById] = useState({});
+  const [selectedRowId, setSelectedRowId] = useState(diagnosticsRows[0].id);
+  const [updatingDiagnosticId, setUpdatingDiagnosticId] = useState(null);
   const [activeTab, setActiveTab] = useState("Overview");
-  const dynamicDetail = buildDetailFromRow(selectedRow);
+  const [categoryFilter, setCategoryFilter] = useState("All Categories");
+  const [severityFilter, setSeverityFilter] = useState("All Severity");
+  const [ownerFilter, setOwnerFilter] = useState("All Owners");
+  const [statusFilter, setStatusFilter] = useState("All Statuses");
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const tabs = ["Overview", "Signals", "Proof Trails", "Trends", "Benchmarks"];
+  const rowsWithStatus = workspaceRows.map((row) => ({
+    ...row,
+    status: statusById[row.id] || row.status,
+    owner: ownerById[row.id] || row.owner,
+  }));
+  const selectedRow = selectedRowId === null ? null : rowsWithStatus.find((row) => row.id === selectedRowId) || rowsWithStatus[0] || diagnosticsRows[0];
+  const dynamicDetail = buildDetailFromRow(selectedRow);
+  const categoryOptions = ["All Categories", ...rowsWithStatus.map((row) => row.category)];
+  const severityOptions = ["All Severity", "High", "Medium"];
+  const ownerOptions = ["All Owners", ...new Set(rowsWithStatus.map((row) => row.owner.split(" / ")[0]))];
+  const statusOptions = ["All Statuses", "Open", "In progress", "Review", "Closed"];
+  const filteredRows = rowsWithStatus.filter((row) => {
+    const severity = row.signalTone === "critical" ? "High" : "Medium";
+    return (
+      (categoryFilter === "All Categories" || row.category === categoryFilter) &&
+      (severityFilter === "All Severity" || severity === severityFilter) &&
+      (ownerFilter === "All Owners" || row.owner.startsWith(ownerFilter)) &&
+      (statusFilter === "All Statuses" || row.status === statusFilter)
+    );
+  });
+  const visibleRows = filteredRows.slice(0, rowsPerPage);
+
+  const handleStatusChange = async (rowId, status) => {
+    if (!canUpdateDiagnostics) {
+      toast.error("Diagnostic workflow updates require approval decision permission.");
+      return;
+    }
+
+    setUpdatingDiagnosticId(rowId);
+    try {
+      await updateDiagnosticWorkflow({ id: rowId, status, note: `Diagnostic status changed to ${status}.` });
+      setStatusById((current) => ({ ...current, [rowId]: status }));
+      toast.success(`Diagnostic status changed to ${status}`);
+    } catch (error) {
+      toast.error(error.message || "Diagnostic status update failed");
+    } finally {
+      setUpdatingDiagnosticId(null);
+    }
+  };
+
+  const handleAssignOwner = async (rowId, owner, ownerRole) => {
+    if (!canUpdateDiagnostics) {
+      toast.error("Diagnostic assignment requires approval decision permission.");
+      return;
+    }
+
+    setUpdatingDiagnosticId(rowId);
+    try {
+      await updateDiagnosticWorkflow({ id: rowId, owner, ownerRole, note: `Assigned to ${owner} (${ownerRole}).` });
+      setOwnerById((current) => ({ ...current, [rowId]: `${owner} / ${ownerRole}` }));
+      toast.success(`Diagnostic assigned to ${owner}`);
+    } catch (error) {
+      toast.error(error.message || "Diagnostic assignment failed");
+    } finally {
+      setUpdatingDiagnosticId(null);
+    }
+  };
+
+  const handleArchiveDiagnostic = async (rowId) => {
+    if (!canUpdateDiagnostics) {
+      toast.error("Diagnostic archive requires approval decision permission.");
+      return;
+    }
+
+    setUpdatingDiagnosticId(rowId);
+    try {
+      await updateDiagnosticWorkflow({
+        id: rowId,
+        status: "Closed",
+        note: "Diagnostic archived from the detail menu.",
+      });
+      setStatusById((current) => ({ ...current, [rowId]: "Closed" }));
+      toast.success("Diagnostic archived");
+    } catch (error) {
+      toast.error(error.message || "Diagnostic archive failed");
+    } finally {
+      setUpdatingDiagnosticId(null);
+    }
+  };
+
+  const clearFilters = () => {
+    setCategoryFilter("All Categories");
+    setSeverityFilter("All Severity");
+    setOwnerFilter("All Owners");
+    setStatusFilter("All Statuses");
+    setRowsPerPage(10);
+    toast.success("Filters cleared");
+  };
+
+  const handleTabSelect = (tab) => {
+    setActiveTab(tab);
+    if (tab === "Signals") {
+      document.getElementById("diagnostic-signals-table")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (tab === "Proof Trails") {
+      onNavigate?.("data");
+    } else if (tab === "Trends") {
+      onNavigate?.("savings");
+    } else if (tab === "Benchmarks") {
+      onNavigate?.("reports");
+    }
+  };
+
+  const renderFilterMenu = (label, value, options, onChange) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="flex items-center gap-1.5 rounded border border-[#28313C] bg-transparent px-3 py-1.5 text-[10px] text-muted-foreground hover:bg-[#141A22] transition-colors">
+        {value || label} <ChevronDown className="size-3" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-44 border-[#28313C] bg-[#0E1116] text-muted-foreground">
+        {options.map((option) => (
+          <DropdownMenuItem key={option} onClick={() => onChange(option)} className="text-[11px] focus:bg-[#28313C] focus:text-white">
+            <span className="flex-1">{option}</span>
+            {value === option && <Check className="size-3 text-primary" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* KPI Strip */}
       <div className="flex flex-wrap gap-4">
-        {diagnosticsKpis.map((kpi, i) => (
+        {diagnosticKpis.map((kpi, i) => (
           <DiagKpi key={kpi.label} index={i} {...kpi} />
         ))}
       </div>
@@ -484,13 +718,13 @@ export default function Diagnostics({ onNavigate }) {
       {/* Main Grid */}
       <div className="grid grid-cols-12 gap-6 h-[720px]">
         {/* Left Column */}
-        <div className="col-span-12 xl:col-span-7 flex flex-col border border-[#1E2730] bg-[#0A0C0B] rounded-xl overflow-hidden">
+        <div className="col-span-12 xl:col-span-7 flex flex-col border border-[#28313C] bg-[#0E1116] rounded-xl overflow-hidden">
           {/* Tabs */}
-          <div className="flex items-center gap-6 px-6 pt-4 border-b border-[#1E2730] text-[11px] font-semibold shrink-0">
+          <div className="flex items-center gap-6 px-6 pt-4 border-b border-[#28313C] text-[11px] font-semibold shrink-0">
             {tabs.map(t => (
               <button 
                 key={t}
-                onClick={() => setActiveTab(t)}
+                onClick={() => handleTabSelect(t)}
                 className={cn(
                   "pb-3 transition-colors relative",
                   activeTab === t ? "text-white" : "text-muted-foreground hover:text-white"
@@ -503,32 +737,24 @@ export default function Diagnostics({ onNavigate }) {
           </div>
 
           {/* Filters */}
-          <div className="flex items-center justify-between px-6 py-4 shrink-0 border-b border-[#1E2730]">
+          <div className="flex items-center justify-between px-6 py-4 shrink-0 border-b border-[#28313C]">
             <div className="flex items-center gap-3">
-              {["All Categories", "All Severity", "All Owners", "All Business Areas"].map(f => (
-                <DropdownMenu key={f}>
-                  <DropdownMenuTrigger className="flex items-center gap-1.5 rounded border border-[#1E2730] bg-transparent px-3 py-1.5 text-[10px] text-muted-foreground hover:bg-[#141B21] transition-colors">
-                      {f} <ChevronDown className="size-3" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-40 border-[#1E2730] bg-[#0A0C0B] text-muted-foreground">
-                    <DropdownMenuItem onClick={() => toast.success(`${f} selected`)} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Option 1</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast.success(`${f} selected`)} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Option 2</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast.success(`${f} selected`)} className="text-[11px] focus:bg-[#1E2730] focus:text-white">Option 3</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ))}
-              <div className="w-px h-4 bg-[#1E2730] mx-1" />
-              <button onClick={() => toast.info("Opening advanced filters...")} className="flex items-center gap-1.5 rounded border border-[#1E2730] bg-transparent px-3 py-1.5 text-[10px] text-white hover:bg-[#141B21] transition-colors">
+              {renderFilterMenu("All Categories", categoryFilter, categoryOptions, setCategoryFilter)}
+              {renderFilterMenu("All Severity", severityFilter, severityOptions, setSeverityFilter)}
+              {renderFilterMenu("All Owners", ownerFilter, ownerOptions, setOwnerFilter)}
+              {renderFilterMenu("All Statuses", statusFilter, statusOptions, setStatusFilter)}
+              <div className="w-px h-4 bg-[#28313C] mx-1" />
+              <button onClick={() => toast.info("Use category, severity, owner, and status filters to scope diagnostics.")} className="flex items-center gap-1.5 rounded border border-[#28313C] bg-transparent px-3 py-1.5 text-[10px] text-white hover:bg-[#141A22] transition-colors">
                 <Filter className="size-3 text-muted-foreground" /> Filters
               </button>
-              <button onClick={() => toast.success("Filters cleared")} className="text-[10px] text-primary hover:underline ml-2 font-medium">Clear all</button>
+              <button onClick={clearFilters} className="text-[10px] text-primary hover:underline ml-2 font-medium">Clear all</button>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto scrollbar-thin">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-[#1E2730]">
+                <tr className="border-b border-[#28313C]">
                   <th className="py-3 text-left text-[9px] font-semibold uppercase tracking-widest text-muted-foreground w-6 px-4"></th>
                   <th className="py-3 text-left text-[9px] font-semibold uppercase tracking-widest text-muted-foreground w-40">Category</th>
                   <th className="py-3 text-left text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Score</th>
@@ -542,13 +768,13 @@ export default function Diagnostics({ onNavigate }) {
                 </tr>
               </thead>
               <tbody>
-                {diagnosticsRows.map((row) => (
+                {visibleRows.map((row) => (
                   <tr
                     key={row.id}
-                    onClick={() => setSelectedRow(row)}
+                    onClick={() => setSelectedRowId(row.id)}
                     className={cn(
-                      "cursor-pointer border-b border-[#1E2730]/50 transition-colors hover:bg-white/[0.02]",
-                      selectedRow?.id === row.id && "bg-white/[0.05] border-l-2 border-l-primary border-r-0 border-y-[#1E2730]"
+                      "cursor-pointer border-b border-[#28313C]/50 transition-colors hover:bg-white/[0.02]",
+                      selectedRow?.id === row.id && "bg-white/[0.05] border-l-2 border-l-primary border-r-0 border-y-[#28313C]"
                     )}
                   >
                     <td className="py-3 px-4 text-center">
@@ -593,7 +819,7 @@ export default function Diagnostics({ onNavigate }) {
                     <td className="py-3">
                       <div className="flex items-center gap-2">
                         <span className="text-[11px] font-bold tabular-nums text-white">{row.confidence}%</span>
-                        <div className="h-1 w-12 overflow-hidden rounded-full bg-[#1E2730]">
+                        <div className="h-1 w-12 overflow-hidden rounded-full bg-[#28313C]">
                           <div className="h-full rounded-full bg-primary/80" style={{ width: `${row.confidence}%` }} />
                         </div>
                       </div>
@@ -618,33 +844,40 @@ export default function Diagnostics({ onNavigate }) {
                     </td>
                   </tr>
                 ))}
+                {visibleRows.length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="py-10 text-center text-[11px] text-muted-foreground">
+                      No diagnostics match the current filters.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
             
-            <div className="flex items-center justify-between border-t border-[#1E2730] px-6 py-3 text-[11px] text-muted-foreground">
-              <span>Showing 1 to 7 of 7 categories</span>
+            <div className="flex items-center justify-between border-t border-[#28313C] px-6 py-3 text-[11px] text-muted-foreground">
+              <span>Showing {visibleRows.length ? 1 : 0} to {visibleRows.length} of {filteredRows.length} categories</span>
               <div className="flex items-center gap-4">
                 <span>Rows per page:</span>
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="flex items-center gap-1 font-medium text-white bg-[#141B21] border border-[#1E2730] rounded px-2 py-1 transition-colors hover:bg-[#1E2730]">
-                      10 <ChevronDown className="size-3 text-muted-foreground" />
+                  <DropdownMenuTrigger className="flex items-center gap-1 font-medium text-white bg-[#141A22] border border-[#28313C] rounded px-2 py-1 transition-colors hover:bg-[#28313C]">
+                      {rowsPerPage} <ChevronDown className="size-3 text-muted-foreground" />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-16 min-w-0 border-[#1E2730] bg-[#0A0C0B] text-muted-foreground">
-                    <DropdownMenuItem onClick={() => toast.success("Rows set to 10")} className="text-[11px] focus:bg-[#1E2730] focus:text-white">10</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast.success("Rows set to 25")} className="text-[11px] focus:bg-[#1E2730] focus:text-white">25</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toast.success("Rows set to 50")} className="text-[11px] focus:bg-[#1E2730] focus:text-white">50</DropdownMenuItem>
+                  <DropdownMenuContent align="end" className="w-16 min-w-0 border-[#28313C] bg-[#0E1116] text-muted-foreground">
+                    {[10, 25, 50].map((value) => (
+                      <DropdownMenuItem key={value} onClick={() => setRowsPerPage(value)} className="text-[11px] focus:bg-[#28313C] focus:text-white">{value}</DropdownMenuItem>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
             </div>
             
             {/* Recent diagnostic signals */}
-            <div className="flex flex-col border-t border-[#1E2730]">
+            <div id="diagnostic-signals-table" className="flex flex-col border-t border-[#28313C]">
               <div className="px-6 py-4 flex flex-col gap-4">
                 <span className="text-[11px] font-semibold text-white">Recent diagnostic signals</span>
                 <table className="w-full text-[10px]">
                   <thead>
-                    <tr className="border-b border-[#1E2730] text-muted-foreground">
+                    <tr className="border-b border-[#28313C] text-muted-foreground">
                       <th className="py-2 text-left font-semibold uppercase tracking-widest w-24">Time</th>
                       <th className="py-2 text-left font-semibold uppercase tracking-widest w-20">Severity</th>
                       <th className="py-2 text-left font-semibold uppercase tracking-widest">Signal</th>
@@ -656,7 +889,7 @@ export default function Diagnostics({ onNavigate }) {
                   </thead>
                   <tbody>
                     {diagnosticSignals.map((sig, i) => (
-                      <tr key={i} className="border-b border-[#1E2730]/50 text-muted-foreground transition-colors hover:bg-white/[0.02] last:border-0">
+                      <tr key={i} className="border-b border-[#28313C]/50 text-muted-foreground transition-colors hover:bg-white/[0.02] last:border-0">
                         <td className="py-3 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <span className={cn("size-1.5 rounded-full", 
@@ -674,14 +907,18 @@ export default function Diagnostics({ onNavigate }) {
                         </td>
                         <td className="py-3 text-white pr-4 line-clamp-1">{sig.signal}</td>
                         <td className="py-3">{sig.category}</td>
-                        <td className="py-3 text-primary hover:underline cursor-pointer">{sig.evidence}</td>
+                        <td className="py-3">
+                          <button type="button" onClick={() => onNavigate?.("data")} className="text-primary hover:underline">
+                            {sig.evidence}
+                          </button>
+                        </td>
                         <td className="py-3 font-semibold tabular-nums text-white">{sig.impact}</td>
                         <td className="py-3">{sig.status}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                <button onClick={() => toast.info("Opening all signals...")} className="text-left text-[11px] font-medium text-primary hover:underline w-fit mt-1">
+                <button onClick={() => document.getElementById("diagnostic-signals-table")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="text-left text-[11px] font-medium text-primary hover:underline w-fit mt-1">
                   View all signals →
                 </button>
               </div>
@@ -694,13 +931,18 @@ export default function Diagnostics({ onNavigate }) {
           {selectedRow && dynamicDetail ? (
             <DetailPanel
               detail={dynamicDetail}
-              onClose={() => setSelectedRow(null)}
+              onClose={() => setSelectedRowId(null)}
               onNavigate={onNavigate}
+              onStatusChange={handleStatusChange}
+              onAssignOwner={handleAssignOwner}
+              onArchive={handleArchiveDiagnostic}
+              canUpdate={canUpdateDiagnostics}
+              isUpdating={updatingDiagnosticId === selectedRow.id}
               signalsCount={selectedRow.signals}
               proofTrailsCount={selectedRow.proofTrails}
             />
           ) : (
-            <div className="flex h-full flex-col items-center justify-center rounded-xl border border-[#1E2730] border-dashed bg-[#0A0C0B]/50 p-8 text-center">
+            <div className="flex h-full flex-col items-center justify-center rounded-xl border border-[#28313C] border-dashed bg-[#0E1116]/50 p-8 text-center">
               <Activity className="mb-3 size-8 text-muted-foreground/30" />
               <span className="text-sm font-semibold text-white">Select a category</span>
               <span className="mt-1 max-w-[200px] text-[11px] text-muted-foreground">Click on any diagnostic category to view detailed analysis and proof trails.</span>
@@ -710,17 +952,17 @@ export default function Diagnostics({ onNavigate }) {
       </div>
       
       {/* Bottom Row - Related business impacts */}
-      <div className="flex flex-col gap-4 border border-[#1E2730] bg-[#0A0C0B] rounded-xl p-5">
+      <div className="flex flex-col gap-4 border border-[#28313C] bg-[#0E1116] rounded-xl p-5">
         <span className="text-[11px] font-semibold text-white">Related business impacts</span>
         <div className="grid grid-cols-5 gap-6">
-          <div className="flex flex-col gap-2 rounded-xl border border-[#1E2730] bg-[#141B21]/30 p-4 relative overflow-hidden group hover:border-[#ffffff15] transition-colors">
+          <div className="flex flex-col gap-2 rounded-xl border border-[#28313C] bg-[#141A22]/30 p-4 relative overflow-hidden group hover:border-[#ffffff15] transition-colors">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Budget variance</span>
             <div className="flex flex-col z-10">
               <span className="text-xl font-bold tabular-nums text-white">-8.7%</span>
               <span className="text-[9px] text-muted-foreground mt-0.5">vs budget</span>
             </div>
             
-            <div className="mt-5 pt-3 border-t border-[#1E2730]/50 z-10">
+            <div className="mt-5 pt-3 border-t border-[#28313C]/50 z-10">
               <span className="text-[10px] text-muted-foreground">Impact: <span className="text-white">$2.14M</span></span>
             </div>
             {/* SVG Sparkline Mockup */}
@@ -729,14 +971,14 @@ export default function Diagnostics({ onNavigate }) {
             </svg>
           </div>
           
-          <div className="flex flex-col gap-2 rounded-xl border border-[#1E2730] bg-[#141B21]/30 p-4 relative overflow-hidden group hover:border-[#ffffff15] transition-colors">
+          <div className="flex flex-col gap-2 rounded-xl border border-[#28313C] bg-[#141A22]/30 p-4 relative overflow-hidden group hover:border-[#ffffff15] transition-colors">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Cost avoidance potential</span>
             <div className="flex flex-col z-10">
               <span className="text-xl font-bold tabular-nums text-white">$1.92M</span>
               <span className="text-[9px] text-muted-foreground mt-0.5">identified</span>
             </div>
             
-            <div className="mt-5 pt-3 border-t border-[#1E2730]/50 z-10">
+            <div className="mt-5 pt-3 border-t border-[#28313C]/50 z-10">
               <span className="text-[10px] text-muted-foreground">Confidence: <span className="text-white">87%</span></span>
             </div>
             {/* SVG Sparkline Mockup */}
@@ -745,14 +987,14 @@ export default function Diagnostics({ onNavigate }) {
             </svg>
           </div>
 
-          <div className="flex flex-col gap-2 rounded-xl border border-[#1E2730] bg-[#141B21]/30 p-4 relative overflow-hidden group hover:border-[#ffffff15] transition-colors">
+          <div className="flex flex-col gap-2 rounded-xl border border-[#28313C] bg-[#141A22]/30 p-4 relative overflow-hidden group hover:border-[#ffffff15] transition-colors">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Cash at risk (30 days)</span>
             <div className="flex flex-col z-10">
               <span className="text-xl font-bold tabular-nums text-white">$2.45M</span>
               <span className="text-[9px] text-muted-foreground mt-0.5">exposure</span>
             </div>
             
-            <div className="mt-5 pt-3 border-t border-[#1E2730]/50 z-10">
+            <div className="mt-5 pt-3 border-t border-[#28313C]/50 z-10">
               <span className="text-[10px] text-muted-foreground">vs last week <span className="text-critical font-bold ml-1">↑ 9%</span></span>
             </div>
             {/* SVG Sparkline Mockup */}
@@ -761,14 +1003,14 @@ export default function Diagnostics({ onNavigate }) {
             </svg>
           </div>
 
-          <div className="flex flex-col gap-2 rounded-xl border border-[#1E2730] bg-[#141B21]/30 p-4 relative overflow-hidden group hover:border-[#ffffff15] transition-colors">
+          <div className="flex flex-col gap-2 rounded-xl border border-[#28313C] bg-[#141A22]/30 p-4 relative overflow-hidden group hover:border-[#ffffff15] transition-colors">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Contracts auto-renewing</span>
             <div className="flex flex-col z-10">
               <span className="text-xl font-bold tabular-nums text-white">12</span>
               <span className="text-[9px] text-muted-foreground mt-0.5">at risk</span>
             </div>
             
-            <div className="mt-5 pt-3 border-t border-[#1E2730]/50 z-10">
+            <div className="mt-5 pt-3 border-t border-[#28313C]/50 z-10">
               <span className="text-[10px] text-muted-foreground">Value: <span className="text-white">$3.05M</span></span>
             </div>
             {/* SVG Sparkline Mockup */}
@@ -777,14 +1019,14 @@ export default function Diagnostics({ onNavigate }) {
             </svg>
           </div>
 
-          <div className="flex flex-col gap-2 rounded-xl border border-[#1E2730] bg-[#141B21]/30 p-4 relative overflow-hidden group hover:border-[#ffffff15] transition-colors">
+          <div className="flex flex-col gap-2 rounded-xl border border-[#28313C] bg-[#141A22]/30 p-4 relative overflow-hidden group hover:border-[#ffffff15] transition-colors">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Suppliers over contract</span>
             <div className="flex flex-col z-10">
               <span className="text-xl font-bold tabular-nums text-white">24%</span>
               <span className="text-[9px] text-muted-foreground mt-0.5">of spend</span>
             </div>
             
-            <div className="mt-5 pt-3 border-t border-[#1E2730]/50 z-10">
+            <div className="mt-5 pt-3 border-t border-[#28313C]/50 z-10">
               <span className="text-[10px] text-muted-foreground">vs last week <span className="text-primary font-bold ml-1">↑ 3%</span></span>
             </div>
             {/* SVG Sparkline Mockup */}

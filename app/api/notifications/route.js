@@ -1,5 +1,6 @@
-import { getRequestWorkspaceContext } from "../../../lib/server/auth-session";
+import { requireRequestCapability, requireRequestWorkspaceContext, sessionRequiredResponse } from "../../../lib/server/auth-session";
 import { getWorkspaceSnapshot, updateNotificationStatus } from "../../../lib/server/evidence-store";
+import { guardMutationRequest } from "../../../lib/server/request-security";
 
 export const runtime = "nodejs";
 
@@ -29,7 +30,8 @@ function notificationSummary(notification) {
 
 // Lists approval-linked notifications. Mobile push will consume the same records later.
 export async function GET(request) {
-  const context = getRequestWorkspaceContext(request);
+  const context = await requireRequestWorkspaceContext(request);
+  if (!context) return sessionRequiredResponse();
   const workspace = await getWorkspaceSnapshot({ workspaceId: context.workspaceId });
   const notifications = (workspace.notifications || []).map(notificationSummary);
 
@@ -45,7 +47,11 @@ export async function GET(request) {
 
 // Updates notification state only; the underlying approval action is unchanged.
 export async function PATCH(request) {
-  const context = getRequestWorkspaceContext(request);
+  const guard = guardMutationRequest(request, { keyPrefix: "notifications:patch", limit: 120, windowMs: 10 * 60_000 });
+  if (guard) return guard;
+
+  const { context, response } = await requireRequestCapability(request, "update_notifications");
+  if (response) return response;
   const body = await request.json().catch(() => ({}));
   const status = String(body.status || "");
   const id = body.id ? String(body.id) : "";
@@ -71,5 +77,5 @@ export async function PATCH(request) {
   return Response.json({
     workspace,
     notifications: (workspace.notifications || []).map(notificationSummary),
-  });
+  }, { headers: { "Cache-Control": "private, no-store" } });
 }

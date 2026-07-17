@@ -1,5 +1,6 @@
 import { deleteEvidenceRecord, updateEvidenceRecord } from "../../../../lib/server/evidence-store";
-import { getRequestWorkspaceContext } from "../../../../lib/server/auth-session";
+import { requireRequestCapability } from "../../../../lib/server/auth-session";
+import { guardMutationRequest } from "../../../../lib/server/request-security";
 
 export const runtime = "nodejs";
 
@@ -16,13 +17,21 @@ function cleanReviewedFields(fields) {
 
 // Saves human-confirmed extraction fields and marks the record as safe to use downstream.
 export async function POST(request, context) {
+  const guard = guardMutationRequest(request, { keyPrefix: "evidence:item:post", limit: 80, windowMs: 10 * 60_000 });
+  if (guard) return guard;
+
+  const { context: workspaceContext, response } = await requireRequestCapability(request, "review_evidence");
+  if (response) return response;
+
   const { id } = await context.params;
-  const workspaceContext = getRequestWorkspaceContext(request);
   const body = await request.json().catch(() => ({}));
   const fields = cleanReviewedFields(body.fields);
 
   if (!fields) {
-    return Response.json({ error: "Reviewed fields are required." }, { status: 400 });
+    return Response.json(
+      { error: "Reviewed fields are required." },
+      { status: 400, headers: { "Cache-Control": "private, no-store" } },
+    );
   }
 
   const record = await updateEvidenceRecord(
@@ -36,21 +45,35 @@ export async function POST(request, context) {
   );
 
   if (!record) {
-    return Response.json({ error: "Evidence record not found." }, { status: 404 });
+    return Response.json(
+      { error: "Evidence record not found." },
+      { status: 404, headers: { "Cache-Control": "private, no-store" } },
+    );
   }
 
-  return Response.json({ evidence: record });
+  return Response.json(
+    { evidence: record },
+    { headers: { "Cache-Control": "private, no-store" } },
+  );
 }
 
 // Deletes one evidence record from the local MVP workspace.
 export async function DELETE(_request, context) {
+  const guard = guardMutationRequest(_request, { keyPrefix: "evidence:item:delete", limit: 40, windowMs: 10 * 60_000 });
+  if (guard) return guard;
+
+  const { context: workspaceContext, response } = await requireRequestCapability(_request, "delete_evidence");
+  if (response) return response;
+
   const { id } = await context.params;
-  const workspaceContext = getRequestWorkspaceContext(_request);
   const deleted = await deleteEvidenceRecord(id, { workspaceId: workspaceContext.workspaceId });
 
   if (!deleted) {
-    return Response.json({ error: "Evidence record not found." }, { status: 404 });
+    return Response.json(
+      { error: "Evidence record not found." },
+      { status: 404, headers: { "Cache-Control": "private, no-store" } },
+    );
   }
 
-  return Response.json({ ok: true });
+  return Response.json({ ok: true }, { headers: { "Cache-Control": "private, no-store" } });
 }

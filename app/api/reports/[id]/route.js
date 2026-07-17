@@ -1,4 +1,4 @@
-import { getRequestWorkspaceContext } from "../../../../lib/server/auth-session";
+import { requireContextCapability, requireRequestWorkspaceContext, sessionRequiredResponse } from "../../../../lib/server/auth-session";
 import { getWorkspaceSnapshot } from "../../../../lib/server/evidence-store";
 import { buildReportDetail, reportExportFilename, serializeReportDetail } from "../../../../lib/server/report-engine";
 
@@ -8,10 +8,16 @@ const supportedFormats = new Set(["json", "csv", "markdown"]);
 
 // Returns a board-pack report detail or an export file generated from the current workspace state.
 export async function GET(request, context) {
+  const workspaceContext = await requireRequestWorkspaceContext(request);
+  if (!workspaceContext) return sessionRequiredResponse();
+
   const { id } = await context.params;
   const url = new URL(request.url);
   const format = url.searchParams.get("format");
-  const workspaceContext = getRequestWorkspaceContext(request);
+  if (format) {
+    const denied = requireContextCapability(workspaceContext, "export_data");
+    if (denied) return denied;
+  }
   const workspace = await getWorkspaceSnapshot({ workspaceId: workspaceContext.workspaceId });
   const detail = buildReportDetail(workspace, id);
 

@@ -45,7 +45,7 @@ export function SkeletonButton({ className, ...props }) {
 
 export function SkeletonCard() {
   return (
-    <div className="flex flex-col gap-2.5 rounded-2xl border border-[#ffffff08] bg-[#0a0c0b] p-5">
+    <div className="flex flex-col gap-2.5 rounded-2xl border border-[#ffffff08] bg-[#0E1116] p-5">
       <Skeleton className="h-2.5 w-16 rounded bg-[#ffffff08]" />
       <Skeleton className="h-7 w-24 rounded bg-[#ffffff08]" />
       <Skeleton className="h-2 w-full rounded bg-[#ffffff08]" />

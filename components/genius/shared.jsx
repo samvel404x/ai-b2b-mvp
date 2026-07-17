@@ -57,7 +57,7 @@ const approvalStyles = {
   "Included": "border-primary/30 bg-primary/10 text-primary",
 };
 export function ApprovalPill({ state }) {
-  const s = approvalStyles[state] || "border-[#1E2730] bg-[#141B21] text-muted-foreground";
+  const s = approvalStyles[state] || "border-[#28313C] bg-[#141A22] text-muted-foreground";
   return (
     <span className={cn(
       "inline-flex items-center rounded border px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest whitespace-nowrap",
@@ -118,7 +118,7 @@ export function Panel({
 }) {
   return (
     <section className={cn(
-      "relative flex flex-col overflow-hidden rounded-xl border border-[#1E2730] bg-[#0A0C0B]",
+      "relative flex flex-col overflow-hidden rounded-xl border border-[#28313C] bg-[#0E1116]",
       className,
     )}>
       {accent && (
@@ -130,10 +130,10 @@ export function Panel({
         })} />
       )}
       {(title || actions) && (
-        <header className="flex items-center justify-between gap-3 border-b border-[#1E2730] px-4 py-3">
+        <header className="flex items-center justify-between gap-3 border-b border-[#28313C] px-4 py-3">
           <div className="flex items-center gap-2.5">
             {Icon && (
-              <span className="flex size-6 items-center justify-center rounded bg-[#141B21] text-muted-foreground">
+              <span className="flex size-6 items-center justify-center rounded bg-[#141A22] text-muted-foreground">
                 <Icon className="size-3.5" />
               </span>
             )}
@@ -194,7 +194,7 @@ export function MetricCard({ label, value, unit, format, trend, tone = "neutral"
   return (
     <div
       className={cn(
-        "group relative flex animate-fade-up flex-col gap-2.5 overflow-hidden rounded-xl border border-[#1E2730] bg-[#0A0C0B] p-4 transition-all duration-300 hover:bg-[#0d0f0e]",
+        "group relative flex animate-fade-up flex-col gap-2.5 overflow-hidden rounded-xl border border-[#28313C] bg-[#0E1116] p-4 transition-all duration-300 hover:bg-[#0E1116]",
         toneAccent[tone],
       )}
       style={{ animationDelay: `${index * 55}ms` }}

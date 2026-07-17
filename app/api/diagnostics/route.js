@@ -1,5 +1,11 @@
-import { getRequestWorkspaceContext, publicSession } from "../../../lib/server/auth-session";
-import { getWorkspaceSnapshot } from "../../../lib/server/evidence-store";
+import {
+  publicSession,
+  requireRequestCapability,
+  requireRequestWorkspaceContext,
+  sessionRequiredResponse,
+} from "../../../lib/server/auth-session";
+import { getWorkspaceSnapshot, updateDiagnosticWorkflow } from "../../../lib/server/evidence-store";
+import { guardMutationRequest } from "../../../lib/server/request-security";
 
 export const runtime = "nodejs";
 
@@ -42,7 +48,8 @@ function compactAction(action) {
 
 // Dedicated diagnostics contract for dashboards, mobile monitoring, and investor QA.
 export async function GET(request) {
-  const context = getRequestWorkspaceContext(request);
+  const context = await requireRequestWorkspaceContext(request);
+  if (!context) return sessionRequiredResponse();
   const workspace = await getWorkspaceSnapshot({ workspaceId: context.workspaceId });
   const openActions = (workspace.actions || []).filter((action) => !["Approved", "Rejected", "Done"].includes(action.status));
 
@@ -65,4 +72,34 @@ export async function GET(request) {
     },
     { headers: { "Cache-Control": "private, no-store" } },
   );
+}
+
+export async function PATCH(request) {
+  const guard = guardMutationRequest(request, { keyPrefix: "diagnostics:patch", limit: 80, windowMs: 10 * 60_000 });
+  if (guard) return guard;
+
+  const { context, response } = await requireRequestCapability(request, "decide_approvals");
+  if (response) return response;
+
+  const body = await request.json().catch(() => ({}));
+
+  try {
+    const result = await updateDiagnosticWorkflow(body, context.actor, { workspaceId: context.workspaceId });
+
+    return Response.json(
+      {
+        workspace: result.workspace,
+        diagnostic: result.diagnostic,
+      },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+  } catch (error) {
+    return Response.json(
+      { error: error.message || "Diagnostic workflow could not be updated." },
+      {
+        status: 400,
+        headers: { "Cache-Control": "private, no-store" },
+      },
+    );
+  }
 }
