@@ -114,7 +114,7 @@ function SiteHeader({ session, onEnter, onSignIn }) {
       >
         <div className="flex items-center gap-3 w-[200px] cursor-pointer" onClick={() => scrollTo('hero')}>
           <GeniusLogo className="w-8 h-8 text-[#4EA1FF]" preload />
-          <span className="text-xl font-bold tracking-tight text-white">GENIUS</span>
+          <span className="text-xl font-bold tracking-tight text-white">GENIUS.</span>
         </div>
 
         <div className="hidden lg:flex items-center justify-center gap-8 text-sm font-medium flex-1 relative">
@@ -156,8 +156,8 @@ function SiteHeader({ session, onEnter, onSignIn }) {
           {session ? (
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer border-none bg-transparent outline-none">
-                  <Avatar className="h-9 w-9 border border-white/10 ring-2 ring-primary/20">
-                    <AvatarFallback className="bg-primary/20 text-primary font-medium">
+                  <Avatar className="h-9 w-9 ring-1 ring-[#28313C] transition-colors hover:ring-white/20 bg-[#141A22]">
+                    <AvatarFallback className="bg-transparent text-xs font-bold text-white">
                       {sessionProfile.initials}
                     </AvatarFallback>
                   </Avatar>
@@ -174,8 +174,22 @@ function SiteHeader({ session, onEnter, onSignIn }) {
                   onClick={onEnter}
                   className="cursor-pointer focus:bg-[#28313C] focus:text-white"
                 >
-                  <LayoutGrid className="mr-2 h-4 w-4 text-primary" />
+                  <LayoutGrid className="mr-2 h-4 w-4 text-[#4EA1FF]" />
                   <span>Go to Workspace</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={onSignIn}
+                  className="cursor-pointer focus:bg-[#28313C] focus:text-white"
+                >
+                  <UserPlus className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <span>Add account</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={onSignIn}
+                  className="cursor-pointer focus:bg-[#28313C] focus:text-white"
+                >
+                  <Users className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <span>Switch account</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-[#28313C]" />
                 <DropdownMenuItem
@@ -1959,17 +1973,11 @@ function ApprovalsSection() {
               <g>
                 <motion.path d="M 28 45 C 35 45, 40 50, 45 50" fill="none" stroke="url(#line-left)" strokeWidth="2"
                   initial={{ pathLength: 0, opacity: 0 }} whileInView={{ pathLength: 1, opacity: 0.8 }} transition={{ duration: 1.2, delay: 0.9, ease: "easeInOut" }} />
-                <motion.circle r="3.5" fill="#7CC7FF" filter="url(#glow-dot)"
-                  animate={{ offsetDistance: ["0%", "100%"], opacity: [0, 1, 1, 0] }} transition={{ duration: 2.5, repeat: Infinity, delay: 1.2, ease: "linear" }}
-                  style={{ offsetPath: "path('M 28 45 C 35 45, 40 50, 45 50')" }} />
               </g>
               {/* Center to Right */}
               <g>
                 <motion.path d="M 55 50 C 60 50, 65 45, 71 45" fill="none" stroke="url(#line-right)" strokeWidth="2"
                   initial={{ pathLength: 0, opacity: 0 }} whileInView={{ pathLength: 1, opacity: 0.8 }} transition={{ duration: 1.2, delay: 1.1, ease: "easeInOut" }} />
-                <motion.circle r="3.5" fill="#7CC7FF" filter="url(#glow-dot)"
-                  animate={{ offsetDistance: ["0%", "100%"], opacity: [0, 1, 1, 0] }} transition={{ duration: 2.5, repeat: Infinity, delay: 1.6, ease: "linear" }}
-                  style={{ offsetPath: "path('M 55 50 C 60 50, 65 45, 71 45')" }} />
               </g>
             </svg>
           </div>
@@ -2435,48 +2443,8 @@ function AgentsSection() {
           ))}
         </motion.div>
 
-        {/* Network Visual / Hub */}
-        <div className="relative w-full max-w-[1200px] mx-auto h-[220px] mb-8 flex items-center justify-center pointer-events-none">
-           {/* SVG Lines */}
-           <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
-              <motion.path d="M 50 50 L 15 70" stroke="#4EA1FF" strokeWidth="1" strokeOpacity="0.4" fill="none" initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} transition={{ duration: 1.5, delay: 1 }} viewport={{ once: true }} />
-              <motion.path d="M 50 50 L 30 30" stroke="#4EA1FF" strokeWidth="1" strokeOpacity="0.4" fill="none" initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} transition={{ duration: 1.5, delay: 1.1 }} viewport={{ once: true }} />
-              <motion.path d="M 50 50 L 85 70" stroke="#4EA1FF" strokeWidth="1" strokeOpacity="0.4" fill="none" initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} transition={{ duration: 1.5, delay: 1.2 }} viewport={{ once: true }} />
-              <motion.path d="M 50 50 L 70 30" stroke="#4EA1FF" strokeWidth="1" strokeOpacity="0.4" fill="none" initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} transition={{ duration: 1.5, delay: 1.3 }} viewport={{ once: true }} />
-              <motion.path d="M 50 50 L 20 50" stroke="#4EA1FF" strokeWidth="1" strokeOpacity="0.3" fill="none" initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} transition={{ duration: 1.5, delay: 1.4 }} viewport={{ once: true }} strokeDasharray="4 4" />
-              <motion.path d="M 50 50 L 80 50" stroke="#4EA1FF" strokeWidth="1" strokeOpacity="0.3" fill="none" initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} transition={{ duration: 1.5, delay: 1.5 }} viewport={{ once: true }} strokeDasharray="4 4" />
-           </svg>
 
-           {/* Central Core */}
-           <motion.div initial={{ opacity: 0, scale: 0.8 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ duration: 1, delay: 0.8 }} viewport={{ once: true }}
-             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 flex items-center justify-center z-20">
-              <div className="absolute w-[300px] h-[300px] bg-[#4EA1FF]/20 blur-[60px] rounded-full pointer-events-none" />
-              <div className="absolute w-[180px] h-[60px] border border-[#7CC7FF]/40 rounded-[100%] shadow-[0_0_20px_rgba(78,161,255,0.3)] animate-pulse" />
-              <div className="absolute w-[120px] h-[40px] border border-[#4EA1FF]/60 rounded-[100%] shadow-[inset_0_0_15px_rgba(78,161,255,0.5)]" />
-              {/* Isometric Cube (Faked with SVGs/CSS) */}
-              <div className="relative w-16 h-16 flex items-center justify-center">
-                 <svg viewBox="0 0 100 100" className="w-full h-full text-[#7CC7FF]" style={{ filter: "drop-shadow(0 0 12px rgba(78,161,255,0.9))" }}>
-                    <path d="M50 10 L90 30 L90 70 L50 90 L10 70 L10 30 Z" fill="rgba(78,161,255,0.1)" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                    <path d="M50 10 L50 50 L90 30" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" opacity="0.6" />
-                    <path d="M50 50 L10 30" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" opacity="0.6" />
-                    <path d="M50 50 L50 90" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" opacity="0.6" />
-                 </svg>
-              </div>
-           </motion.div>
 
-           {/* Nodes */}
-           {[
-             { left: "15%", top: "70%" }, { left: "30%", top: "30%" }, { left: "20%", top: "50%" },
-             { left: "85%", top: "70%" }, { left: "70%", top: "30%" }, { left: "80%", top: "50%" },
-           ].map((pos, i) => (
-             <motion.div key={i} initial={{ opacity: 0, scale: 0 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ delay: 1.5 + i*0.1 }} viewport={{ once: true }}
-               className="absolute w-6 h-6 flex items-center justify-center z-10" style={{ ...pos, transform: "translate(-50%, -50%)" }}>
-                <div className="absolute w-10 h-10 bg-[#7CC7FF]/20 blur-[10px] rounded-full" />
-                <div className="w-2 h-2 bg-[#7CC7FF] rounded-full shadow-[0_0_12px_#7CC7FF]" />
-                <div className="absolute w-6 h-6 border border-[#4EA1FF]/50 rounded-full animate-ping" style={{ animationDuration: "3s" }} />
-             </motion.div>
-           ))}
-        </div>
 
         {/* Bottom Trust Strip */}
         <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 1.5 }} viewport={{ once: true }}

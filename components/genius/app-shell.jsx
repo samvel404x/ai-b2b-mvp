@@ -574,15 +574,15 @@ function WorkspaceSettingsModal({ open, onClose, onNavigate }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/82 p-2 backdrop-blur-md sm:p-3">
-      <div className="flex h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-[1840px] flex-col overflow-hidden rounded-2xl border border-[#4EA1FF]/25 bg-[#0E1116] shadow-[0_0_0_1px_rgba(78,161,255,0.08),0_34px_110px_rgba(0,0,0,0.74),0_0_80px_rgba(78,161,255,0.12)]">
-        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[#28313C] bg-[linear-gradient(180deg,#0E1116,#080A0E)] px-5 py-4">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#000000]/60 p-2 sm:p-5 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="flex h-[calc(100dvh-40px)] w-[calc(100vw-40px)] max-w-[1720px] flex-col overflow-hidden rounded-[24px] border border-[#7CC7FF]/20 bg-[#0B101D]/95 shadow-[0_20px_60px_rgba(0,0,0,0.8),_0_0_30px_rgba(78,161,255,0.15)] animate-in zoom-in-[0.98] duration-300">
+        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[#28313C]/60 bg-[linear-gradient(180deg,rgba(14,17,22,0.8),rgba(8,10,14,0.8))] px-6 py-5">
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="flex size-8 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
-                <Settings className="size-4" />
+            <div className="flex items-center gap-3">
+              <span className="flex size-9 items-center justify-center rounded-xl border border-[#7CC7FF]/30 bg-gradient-to-br from-[#4EA1FF]/20 to-[#7CC7FF]/10 text-[#7CC7FF] shadow-[0_0_10px_rgba(78,161,255,0.2)]">
+                <Settings className="size-[18px]" />
               </span>
-              <h2 className="truncate text-base font-bold text-white">Workspace Settings</h2>
+              <h2 className="truncate text-[18px] font-bold text-white tracking-tight">Workspace Settings</h2>
             </div>
             <p className="mt-1 hidden text-[11px] text-muted-foreground sm:block">
               Security, members, AI, guardrails, billing, workspace preferences, and profile controls.
@@ -628,21 +628,31 @@ function LeftSidebar({ active, onNavigate, collapsed, setCollapsed, onLockedActi
         <Link href="/" className="flex items-center gap-3 overflow-hidden hover:opacity-80 transition-opacity">
           <GeniusLogo className="size-9 shrink-0" preload />
           {!collapsed && (
-            <span className="text-xl font-bold tracking-tight text-white">GENIUS.</span>
+            <span className="text-xl font-bold tracking-tight text-white">
+              GENIUS.
+            </span>
           )}
         </Link>
         {!collapsed && (
           <div className="flex flex-col gap-1.5 mt-2">
             <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">WORKSPACE</span>
             <DropdownMenu onOpenChange={setWorkspaceOpen}>
-              <DropdownMenuTrigger className="flex w-full items-center justify-between rounded border border-[#28313C] bg-[#0E1116] px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-[#141A22] outline-none">
+              <DropdownMenuTrigger className={cn(
+                "flex w-full items-center justify-between rounded border px-3 py-2 text-xs font-medium text-white transition-all duration-200 outline-none",
+                workspaceOpen 
+                  ? "border-[#7CC7FF]/40 bg-[#0E1116] shadow-[0_0_15px_rgba(78,161,255,0.15)]" 
+                  : "border-[#28313C] bg-[#0E1116] hover:border-[#7CC7FF]/30 hover:shadow-[0_0_10px_rgba(78,161,255,0.1)] hover:bg-[#141A22]"
+              )}>
                 <div className="flex items-center gap-2">
                   <div className="flex size-4 items-center justify-center rounded bg-primary/20 text-[9px] font-bold text-primary">{workspaceInitials.slice(0, 2)}</div>
                   <span className="truncate max-w-[110px]">{workspaceName}</span>
                 </div>
                 <ChevronDown className={cn("size-3 text-muted-foreground shrink-0 transition-transform duration-200", workspaceOpen ? "rotate-180" : "rotate-0")} />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[208px] 2xl:w-[240px] bg-[#0E1116] border-[#28313C] text-white p-1">
+              <DropdownMenuContent 
+                align="start" 
+                className="w-[208px] 2xl:w-[240px] rounded-md bg-[#0E1116] border border-[#7CC7FF]/30 shadow-[0_0_15px_rgba(78,161,255,0.15)] text-white p-1 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+              >
                 <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-2 py-1.5">
                   Current Workspace
                 </DropdownMenuLabel>

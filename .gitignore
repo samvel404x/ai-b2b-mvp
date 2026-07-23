@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+qa-*.png
+qa-artifacts/
 
 # next.js
 /.next/
@@ -29,6 +31,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+.codex-dev-server*.log
+.codex-dev-server*.out.log
+.codex-dev-server*.err.log
+.codex-npm-process-test*.log
+.codex-npm-process-test*.out.log
+.codex-process-test*.out.log
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -40,8 +48,16 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local agent/dev artifacts
+/.tmp/
+/.codex/
+/.agents/
+/.chrome-qa-profile/
+/langflow/
+/work/
+install.ps1
+temp_*.jsx
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-.vercel

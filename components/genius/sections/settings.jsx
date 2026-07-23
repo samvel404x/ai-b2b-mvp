@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
   AlertTriangle, ArrowRight, Bell, Building, Briefcase, Calendar, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
@@ -582,9 +583,17 @@ export default function SettingsSection({ onNavigate }) {
           </div>
 
           {/* CENTER PANEL: Main Content */}
-          <div className="min-w-0 flex flex-col gap-6 pl-8">
-
-            {activeNav === "account" ? (
+          <div className="min-w-0 flex flex-col pl-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeNav}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                className="flex flex-col gap-6"
+              >
+                {activeNav === "account" ? (
               <>
             {/* Title Block */}
             <div className="flex items-start justify-between gap-4">
@@ -3291,7 +3300,8 @@ export default function SettingsSection({ onNavigate }) {
                 </Button>
               </div>
             )}
-
+              </motion.div>
+            </AnimatePresence>
           </div>
 
 

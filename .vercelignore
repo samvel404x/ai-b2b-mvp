@@ -1,5 +1,36 @@
-docs/design/
-qa-*.png
+# Never upload local secrets or machine state.
+.env
+.env.*
+!.env.example
+.vercel/
+.git/
+.codex/
+.agents/
 .chrome-qa-profile/
+.tmp/
 .data/
 .next/
+out/
+build/
+coverage/
+
+# Dev/test artifacts.
+docs/
+design-qa.md
+qa-*.png
+qa-artifacts/
+.codex-dev-server*.log
+.codex-dev-server*.out.log
+.codex-dev-server*.err.log
+.codex-npm-process-test*.log
+.codex-npm-process-test*.out.log
+.codex-process-test*.out.log
+langflow/
+work/
+install.ps1
+temp_*.jsx
+
+# Local project/operator notes not required at runtime.
+AGENTS.md
+CLAUDE.md
+supabase/
